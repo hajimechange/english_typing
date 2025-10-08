@@ -4,22 +4,678 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>英単語タイピングゲーム</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Tailwind CSS CDNを読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (React用ではないが、ここでは使わないので問題なし) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* カスタムスタイル */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            transition: background-color 0.3s;
+        }
+        .container {
+            max-width: 900px;
+            min-height: 80vh;
+            margin: 40px auto;
+            background: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+        }
+        /* 単語表示エリアのカスタムスタイル */
+        #word-display {
+            font-family: 'Consolas', 'Courier New', monospace;
+            min-height: 2.5em; /* 文字の点滅を避ける */
+            user-select: none;
+        }
+        .correct { color: #10b981; } /* エメラルドグリーン */
+        .incorrect { color: #ef4444; } /* 赤色 */
+        .current-char { 
+            background-color: #fef08a; /* 黄色のハイライト */
+            border-radius: 4px;
+            padding: 0 2px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>英単語タイピングゲーム</h1>
-        
-        <div id="word-display" class="word-display">ここに単語が表示されます</div>
-        
-        <input type="text" id="typing-input" placeholder="ここにタイプしてください" autofocus>
-        
-        <div class="game-info">
-            <p>スコア: <span id="score">0</span></p>
-            <p id="message"></p>
+
+<div id="app" class="container flex flex-col items-center">
+    <h1 class="text-4xl font-extrabold text-indigo-600 mb-8">
+        英単語タイピングゲーム
+    </h1>
+
+    <!-- 画面切り替えエリア -->
+    <div id="screen-container" class="w-full">
+        <!-- ホーム画面 -->
+        <div id="home-screen" class="space-y-8">
+            <h2 class="text-2xl font-semibold text-gray-700">セッションとコースを選んでください</h2>
+
+            <!-- セッション選択 -->
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
+                <!-- 普通名詞セッション -->
+                <div class="flex-1 bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">普通名詞セッション</h3>
+                    <div id="noun-courses" class="space-y-2">
+                        <!-- コースボタンがここに生成されます -->
+                    </div>
+                </div>
+
+                <!-- 一般動詞セッション -->
+                <div class="flex-1 bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">一般動詞セッション</h3>
+                    <div id="verb-courses" class="space-y-2">
+                        <!-- コースボタンがここに生成されます -->
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- ゲーム画面 -->
+        <div id="game-screen" class="hidden space-y-6">
+            <div class="flex justify-between items-center w-full mb-4 p-4 bg-indigo-50 rounded-lg shadow-inner">
+                <p class="text-lg font-bold text-indigo-700">
+                    コース: <span id="current-course-display"></span>
+                </p>
+                <div class="text-2xl font-extrabold text-red-600 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mr-2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    残り時間: <span id="timer" class="ml-1">60</span>秒
+                </div>
+            </div>
+            
+            <!-- スコア・情報エリア -->
+            <div class="flex justify-around text-center mb-6">
+                <div class="p-3 bg-green-100 rounded-lg shadow-md">
+                    <p class="text-sm text-green-700">スコア</p>
+                    <p id="score" class="text-3xl font-bold text-green-600">0</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg shadow-md">
+                    <p class="text-sm text-red-700">ミスタイプ</p>
+                    <p id="mistake-count" class="text-3xl font-bold text-red-600">0</p>
+                </div>
+                <div class="p-3 bg-yellow-100 rounded-lg shadow-md">
+                    <p class="text-sm text-yellow-700">単語</p>
+                    <p id="word-progress" class="text-3xl font-bold text-yellow-600">0/0</p>
+                </div>
+            </div>
+
+            <!-- 単語と画像エリア -->
+            <div class="flex flex-col items-center space-y-4">
+                <!-- ① 画像/イラスト -->
+                <img id="word-image" src="" alt="表示中の単語のイラスト" class="w-full max-w-xs h-40 object-cover rounded-lg shadow-md border-4 border-gray-200">
+                
+                <!-- ③ 日本語の意味 -->
+                <p id="word-meaning" class="text-xl font-medium text-gray-600 mb-2">日本語の意味</p>
+                
+                <!-- ② 英単語表示エリア -->
+                <div id="word-display" class="text-5xl font-extrabold tracking-wider p-4 bg-gray-50 rounded-lg w-full text-center shadow-inner">
+                    Loading...
+                </div>
+                
+                <!-- ④ 入力ボックス -->
+                <input type="text" id="typing-input" placeholder="タイプを開始してください" class="w-full md:w-3/4 p-4 text-2xl text-center border-4 border-indigo-400 rounded-xl focus:border-indigo-600 outline-none transition-all duration-300" autofocus disabled>
+            </div>
+            
+            <p id="feedback-message" class="text-center text-lg h-6"></p>
+
+            <button onclick="changeScreen('home')" class="mt-4 px-6 py-2 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors">
+                ホームに戻る
+            </button>
+        </div>
+        
+        <!-- 結果画面 -->
+        <div id="result-screen" class="hidden space-y-6 text-center">
+            <h2 class="text-4xl font-extrabold text-green-600">ゲーム終了！</h2>
+            <p class="text-2xl text-gray-700">
+                あなたの最終スコアは: <span id="final-score" class="text-indigo-600 font-extrabold text-5xl">0</span> ポイントです
+            </p>
+            <p class="text-xl text-gray-600">
+                <span id="completed-words">0</span> / <span id="total-words">0</span> 単語を完了しました。
+            </p>
+            <button onclick="initGame(GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+                このコースで再チャレンジ！
+            </button>
+            <button onclick="changeScreen('home')" class="mt-4 px-6 py-3 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors block mx-auto">
+                コース選択に戻る
+            </button>
+        </div>
+        
+        <!-- APIロード中のインジケータ -->
+        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white p-6 rounded-lg shadow-2xl flex items-center space-x-3">
+                <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span class="text-lg font-semibold text-indigo-700">音声データを準備中...</span>
+            </div>
+        </div>
+
     </div>
+</div>
+
+<script>
+// =========================================================
+// 1. データ定義 (全260単語)
+// =========================================================
+
+const WORD_DATA = {
+    "普通名詞セッション": {
+        "動物": [
+            { word: "dog", meaning: "犬" }, { word: "cat", meaning: "猫" }, { word: "bird", meaning: "鳥" }, { word: "fish", meaning: "魚" }, { word: "horse", meaning: "馬" },
+            { word: "lion", meaning: "ライオン" }, { word: "tiger", meaning: "トラ" }, { word: "bear", meaning: "熊" }, { word: "monkey", meaning: "猿" }, { word: "rabbit", meaning: "ウサギ" },
+            { word: "mouse", meaning: "ネズミ" }, { word: "sheep", meaning: "羊" }, { word: "goat", meaning: "ヤギ" }, { word: "pig", meaning: "豚" }, { word: "cow", meaning: "牛" },
+            { word: "snake", meaning: "蛇" }, { word: "spider", meaning: "クモ" }, { word: "whale", meaning: "クジラ" }, { word: "dolphin", meaning: "イルカ" }, { word: "penguin", meaning: "ペンギン" }
+        ],
+        "食べ物": [
+            { word: "apple", meaning: "りんご" }, { word: "banana", meaning: "バナナ" }, { word: "orange", meaning: "オレンジ" }, { word: "grape", meaning: "ぶどう" }, { word: "rice", meaning: "ご飯" },
+            { word: "bread", meaning: "パン" }, { word: "meat", meaning: "肉" }, { word: "egg", meaning: "卵" }, { word: "cheese", meaning: "チーズ" }, { word: "milk", meaning: "牛乳" },
+            { word: "pizza", meaning: "ピザ" }, { word: "sushi", meaning: "寿司" }, { word: "salad", meaning: "サラダ" }, { word: "soup", meaning: "スープ" }, { word: "curry", meaning: "カレー" },
+            { word: "water", meaning: "水" }, { word: "juice", meaning: "ジュース" }, { word: "coffee", meaning: "コーヒー" }, { word: "sugar", meaning: "砂糖" }, { word: "salt", meaning: "塩" }
+        ],
+        "家具": [
+            { word: "chair", meaning: "椅子" }, { word: "table", meaning: "テーブル" }, { word: "bed", meaning: "ベッド" }, { word: "sofa", meaning: "ソファ" }, { word: "desk", meaning: "机" },
+            { word: "shelf", meaning: "棚" }, { word: "lamp", meaning: "ランプ" }, { word: "mirror", meaning: "鏡" }, { word: "clock", meaning: "時計" }, { word: "drawer", meaning: "引き出し" },
+            { word: "rug", meaning: "ラグ" }, { word: "door", meaning: "ドア" }, { word: "window", meaning: "窓" }, { word: "curtain", meaning: "カーテン" }, { word: "carpet", meaning: "カーペット" },
+            { word: "heater", meaning: "暖房" }, { word: "fan", meaning: "扇風機" }, { word: "picture", meaning: "絵" }, { word: "vases", meaning: "花瓶" }, { word: "cabinet", meaning: "戸棚" }
+        ],
+        "筆記用具": [
+            { word: "pen", meaning: "ペン" }, { word: "pencil", meaning: "鉛筆" }, { word: "eraser", meaning: "消しゴム" }, { word: "notebook", meaning: "ノート" }, { word: "ruler", meaning: "定規" },
+            { word: "book", meaning: "本" }, { word: "paper", meaning: "紙" }, { word: "stapler", meaning: "ホッチキス" }, { word: "scissors", meaning: "ハサミ" }, { word: "glue", meaning: "のり" },
+            { word: "folder", meaning: "ファイル" }, { word: "marker", meaning: "マーカー" }, { word: "crayon", meaning: "クレヨン" }, { word: "ink", meaning: "インク" }, { word: "clipboard", meaning: "クリップボード" },
+            { word: "tape", meaning: "テープ" }, { word: "chalk", meaning: "チョーク" }, { word: "compass", meaning: "コンパス" }, { word: "binder", meaning: "バインダー" }, { word: "highlighter", meaning: "蛍光ペン" }
+        ],
+        "色": [
+            { word: "red", meaning: "赤" }, { word: "blue", meaning: "青" }, { word: "green", meaning: "緑" }, { word: "yellow", meaning: "黄" }, { word: "black", meaning: "黒" },
+            { word: "white", meaning: "白" }, { word: "pink", meaning: "ピンク" }, { word: "brown", meaning: "茶色" }, { word: "gray", meaning: "灰色" }, { word: "purple", meaning: "紫" },
+            { word: "orange", meaning: "オレンジ" }, { word: "gold", meaning: "金色" }, { word: "silver", meaning: "銀色" }, { word: "navy", meaning: "紺色" }, { word: "beige", meaning: "ベージュ" },
+            { word: "sky", meaning: "空色" }, { word: "deep", meaning: "濃い" }, { word: "light", meaning: "薄い" }, { word: "colorful", meaning: "カラフル" }, { word: "transparent", meaning: "透明" }
+        ],
+        "天気": [
+            { word: "sun", meaning: "太陽" }, { word: "rain", meaning: "雨" }, { word: "snow", meaning: "雪" }, { word: "wind", meaning: "風" }, { word: "cloud", meaning: "雲" },
+            { word: "storm", meaning: "嵐" }, { word: "fog", meaning: "霧" }, { word: "clear", meaning: "晴れた" }, { word: "warm", meaning: "暖かい" }, { word: "cold", meaning: "寒い" },
+            { word: "humid", meaning: "湿気た" }, { word: "forecast", meaning: "予報" }, { word: "rainbow", meaning: "虹" }, { word: "thunder", meaning: "雷" }, { word: "lightning", meaning: "稲妻" },
+            { word: "hail", meaning: "ひょう" }, { word: "breeze", meaning: "そよ風" }, { word: "typhoon", meaning: "台風" }, { word: "drizzle", meaning: "霧雨" }, { word: "overcast", meaning: "曇りの" }
+        ],
+        "体の部位": [
+            { word: "head", meaning: "頭" }, { word: "face", meaning: "顔" }, { word: "eye", meaning: "目" }, { word: "ear", meaning: "耳" }, { word: "nose", meaning: "鼻" },
+            { word: "mouth", meaning: "口" }, { word: "hand", meaning: "手" }, { word: "foot", meaning: "足（足首から下）" }, { word: "arm", meaning: "腕" }, { word: "leg", meaning: "脚" },
+            { word: "stomach", meaning: "胃/腹" }, { word: "neck", meaning: "首" }, { word: "back", meaning: "背中" }, { word: "finger", meaning: "指" }, { word: "hair", meaning: "髪" },
+            { word: "teeth", meaning: "歯" }, { word: "shoulder", meaning: "肩" }, { word: "chest", meaning: "胸" }, { word: "knee", meaning: "ひざ" }, { word: "skin", meaning: "肌" }
+        ],
+        "学校に関するもの": [
+            { word: "school", meaning: "学校" }, { word: "teacher", meaning: "先生" }, { word: "student", meaning: "生徒" }, { word: "class", meaning: "授業/クラス" }, { word: "lesson", meaning: "課/レッスン" },
+            { word: "homework", meaning: "宿題" }, { word: "test", meaning: "テスト" }, { word: "exam", meaning: "試験" }, { word: "library", meaning: "図書館" }, { word: "gym", meaning: "体育館" },
+            { word: "uniform", meaning: "制服" }, { word: "break", meaning: "休み時間" }, { word: "club", meaning: "部活" }, { word: "friend", meaning: "友達" }, { word: "study", meaning: "勉強" },
+            { word: "subject", meaning: "科目" }, { word: "history", meaning: "歴史" }, { word: "science", meaning: "科学" }, { word: "math", meaning: "数学" }, { word: "sport", meaning: "スポーツ" }
+        ]
+    },
+    "一般動詞セッション": {
+        "コーパストップ２０": [
+            { word: "say", meaning: "言う" }, { word: "get", meaning: "得る" }, { word: "make", meaning: "作る" }, { word: "go", meaning: "行く" }, { word: "know", meaning: "知る" },
+            { word: "take", meaning: "取る" }, { word: "see", meaning: "見る" }, { word: "come", meaning: "来る" }, { word: "think", meaning: "考える" }, { word: "look", meaning: "見る" },
+            { word: "want", meaning: "欲しい" }, { word: "give", meaning: "与える" }, { word: "use", meaning: "使う" }, { word: "find", meaning: "見つける" }, { word: "tell", meaning: "話す" },
+            { word: "ask", meaning: "尋ねる" }, { word: "work", meaning: "働く" }, { word: "seem", meaning: "〜のようだ" }, { word: "feel", meaning: "感じる" }, { word: "try", meaning: "試す" }
+        ],
+        "コーパストップ２０〜４０": [
+            { word: "leave", meaning: "去る" }, { word: "call", meaning: "呼ぶ" }, { word: "need", meaning: "必要とする" }, { word: "become", meaning: "〜になる" }, { word: "put", meaning: "置く" },
+            { word: "mean", meaning: "意味する" }, { word: "keep", meaning: "保つ" }, { word: "let", meaning: "許可する" }, { word: "begin", meaning: "始める" }, { word: "help", meaning: "助ける" },
+            { word: "turn", meaning: "曲がる" }, { word: "start", meaning: "始める" }, { word: "show", meaning: "示す" }, { word: "hear", meaning: "聞く" }, { word: "play", meaning: "遊ぶ" },
+            { word: "run", meaning: "走る" }, { word: "move", meaning: "動く" }, { word: "like", meaning: "好きだ" }, { word: "live", meaning: "住む" }, { word: "believe", meaning: "信じる" }
+        ],
+        "コーパストップ４０〜６０": [
+            { word: "bring", meaning: "持ってくる" }, { word: "happen", meaning: "起こる" }, { word: "write", meaning: "書く" }, { word: "provide", meaning: "提供する" }, { word: "sit", meaning: "座る" },
+            { word: "stand", meaning: "立つ" }, { word: "lose", meaning: "失う" }, { word: "pay", meaning: "支払う" }, { word: "meet", meaning: "会う" }, { word: "include", meaning: "含む" },
+            { word: "continue", meaning: "続ける" }, { word: "set", meaning: "設定する" }, { word: "learn", meaning: "学ぶ" }, { word: "change", meaning: "変える" }, { word: "wait", meaning: "待つ" },
+            { word: "watch", meaning: "見守る" }, { word: "follow", meaning: "従う" }, { word: "stop", meaning: "止める" }, { word: "create", meaning: "創造する" }, { word: "speak", meaning: "話す" }
+        ],
+        "コーパストップ６０〜８０": [
+            { word: "read", meaning: "読む" }, { word: "allow", meaning: "許す" }, { word: "add", meaning: "加える" }, { word: "spend", meaning: "費やす" }, { word: "grow", meaning: "育つ" },
+            { word: "open", meaning: "開ける" }, { word: "walk", meaning: "歩く" }, { word: "win", meaning: "勝つ" }, { word: "offer", meaning: "提供する" }, { word: "remember", meaning: "思い出す" },
+            { word: "love", meaning: "愛する" }, { word: "consider", meaning: "検討する" }, { word: "buy", meaning: "買う" }, { word: "serve", meaning: "奉仕する" }, { word: "die", meaning: "死ぬ" },
+            { word: "send", meaning: "送る" }, { word: "build", meaning: "建てる" }, { word: "stay", meaning: "留まる" }, { word: "fall", meaning: "落ちる" }, { word: "cut", meaning: "切る" }
+        ],
+        "コーパストップ８０〜１００": [
+            { word: "reach", meaning: "達する" }, { word: "kill", meaning: "殺す" }, { word: "raise", meaning: "上げる" }, { word: "pass", meaning: "通り過ぎる" }, { word: "sell", meaning: "売る" },
+            { word: "decide", meaning: "決定する" }, { word: "return", meaning: "戻る" }, { word: "explain", meaning: "説明する" }, { word: "hope", meaning: "望む" }, { word: "develop", meaning: "発展させる" },
+            { word: "carry", meaning: "運ぶ" }, { word: "break", meaning: "壊す" }, { word: "receive", meaning: "受け取る" }, { word: "agree", meaning: "同意する" }, { word: "support", meaning: "支援する" },
+            { word: "hit", meaning: "打つ" }, { word: "end", meaning: "終わる" }, { word: "save", meaning: "救う" }, { word: "drive", meaning: "運転する" }, { word: "remain", meaning: "残る" }
+        ]
+    }
+};
+
+// =========================================================
+// 2. グローバルな状態管理とDOM要素
+// =========================================================
+
+const GAME_STATE = {
+    selectedCourse: null,
+    wordList: [],
+    currentWordIndex: 0,
+    score: 0,
+    mistakeCount: 0,
+    timer: 60, // 60秒からスタート
+    timerInterval: null,
+    isGameStarted: false,
+    isGameOver: false,
+};
+
+const DURATION_PENALTY = 5; // ミスタイプ時のペナルティ秒数
+const POINTS_PER_CHARACTER = 10; // 1文字あたりのスコア
+
+// DOM要素の参照
+const $ = id => document.getElementById(id);
+
+const elements = {
+    home: $('home-screen'),
+    game: $('game-screen'),
+    result: $('result-screen'),
+    loading: $('loading-overlay'),
     
-    <script src="script.js"></script>
-</body>
-</html>
+    // Game elements
+    courseDisplay: $('current-course-display'),
+    timer: $('timer'),
+    score: $('score'),
+    mistakeCount: $('mistake-count'),
+    wordProgress: $('word-progress'),
+    wordImage: $('word-image'),
+    wordMeaning: $('word-meaning'),
+    wordDisplay: $('word-display'),
+    typingInput: $('typing-input'),
+    feedbackMessage: $('feedback-message'),
+    
+    // Result elements
+    finalScore: $('final-score'),
+    completedWords: $('completed-words'),
+    totalWords: $('total-words'),
+
+    nounCourses: $('noun-courses'),
+    verbCourses: $('verb-courses')
+};
+
+
+// =========================================================
+// 3. UI画面の切り替え
+// =========================================================
+
+/**
+ * 画面を切り替える
+ * @param {('home'|'game'|'result')} screenId - 表示する画面ID
+ */
+function changeScreen(screenId) {
+    elements.home.classList.add('hidden');
+    elements.game.classList.add('hidden');
+    elements.result.classList.add('hidden');
+    
+    if (screenId === 'home') {
+        elements.home.classList.remove('hidden');
+        renderHomeMenu();
+    } else if (screenId === 'game') {
+        elements.game.classList.remove('hidden');
+    } else if (screenId === 'result') {
+        elements.result.classList.remove('hidden');
+        displayResult();
+    }
+}
+
+
+/**
+ * ホームメニューのコース選択ボタンを生成する
+ */
+function renderHomeMenu() {
+    elements.nounCourses.innerHTML = '';
+    elements.verbCourses.innerHTML = '';
+
+    for (const session in WORD_DATA) {
+        const targetElement = session === "普通名詞セッション" ? elements.nounCourses : elements.verbCourses;
+        
+        for (const courseName in WORD_DATA[session]) {
+            const button = document.createElement('button');
+            button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
+            button.textContent = courseName;
+            button.onclick = () => {
+                startGame(session, courseName);
+            };
+            targetElement.appendChild(button);
+        }
+    }
+}
+
+
+// =========================================================
+// 4. ゲームロジック
+// =========================================================
+
+/**
+ * コースを選択し、ゲーム状態を初期化してゲーム画面に遷移する
+ * @param {string} sessionName 
+ * @param {string} courseName 
+ */
+function startGame(sessionName, courseName) {
+    if (!WORD_DATA[sessionName] || !WORD_DATA[sessionName][courseName]) return;
+
+    // ゲーム状態のリセット
+    GAME_STATE.selectedCourse = courseName;
+    GAME_STATE.wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
+    GAME_STATE.currentWordIndex = 0;
+    GAME_STATE.score = 0;
+    GAME_STATE.mistakeCount = 0;
+    GAME_STATE.timer = 60;
+    GAME_STATE.isGameStarted = false;
+    GAME_STATE.isGameOver = false;
+
+    clearInterval(GAME_STATE.timerInterval);
+    elements.typingInput.value = '';
+    elements.typingInput.disabled = false;
+
+    // UIの更新
+    elements.courseDisplay.textContent = `${sessionName} / ${courseName}`;
+    elements.timer.textContent = GAME_STATE.timer;
+    elements.score.textContent = GAME_STATE.score;
+    elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
+    elements.totalWords.textContent = GAME_STATE.wordList.length;
+
+    displayCurrentWord();
+    changeScreen('game');
+
+    // 最初の入力でゲームが開始するようにイベントリスナーを設定
+    elements.typingInput.onkeydown = startOnFirstKeydown;
+}
+
+
+/**
+ * 最初のキー入力でタイマーをスタートさせる
+ */
+function startOnFirstKeydown(event) {
+    if (!GAME_STATE.isGameStarted && !GAME_STATE.isGameOver) {
+        // アルファベットキーが押されたら開始
+        if (event.key.length === 1 && event.key.match(/[a-zA-Z]/)) {
+            GAME_STATE.isGameStarted = true;
+            elements.typingInput.onkeydown = null; // イベントを解除
+            startTimer();
+        }
+    }
+}
+
+
+/**
+ * タイマーを開始する
+ */
+function startTimer() {
+    GAME_STATE.timerInterval = setInterval(() => {
+        if (GAME_STATE.timer <= 0) {
+            clearInterval(GAME_STATE.timerInterval);
+            gameOver();
+            return;
+        }
+        GAME_STATE.timer--;
+        elements.timer.textContent = GAME_STATE.timer;
+    }, 1000);
+}
+
+
+/**
+ * 現在の単語を画面に表示し、音声再生を開始する
+ */
+function displayCurrentWord() {
+    if (GAME_STATE.currentWordIndex >= GAME_STATE.wordList.length) {
+        gameOver();
+        return;
+    }
+
+    const currentWordData = GAME_STATE.wordList[GAME_STATE.currentWordIndex];
+    
+    // UIをリセット
+    elements.typingInput.value = '';
+    elements.typingInput.focus();
+    elements.wordMeaning.textContent = currentWordData.meaning;
+    elements.wordImage.src = `https://placehold.co/320x160/9ca3af/ffffff?text=${currentWordData.word}`; // 単語のプレースホルダー画像
+    elements.wordProgress.textContent = `${GAME_STATE.currentWordIndex} / ${GAME_STATE.wordList.length}`;
+    elements.feedbackMessage.textContent = '';
+    
+    // 単語の表示を初期化 (最初の文字をハイライト)
+    elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
+
+    // 音声の自動再生
+    playWordAudio(currentWordData.word);
+}
+
+
+/**
+ * ユーザーのキー入力を処理する
+ */
+elements.typingInput.addEventListener('input', () => {
+    if (GAME_STATE.isGameOver || !GAME_STATE.isGameStarted) return;
+    
+    const currentWord = GAME_STATE.wordList[GAME_STATE.currentWordIndex].word;
+    let typedText = elements.typingInput.value;
+    let isMistake = false;
+
+    // リアルタイムでの文字色ハイライトとミス判定
+    let highlightedWord = '';
+    
+    for (let i = 0; i < currentWord.length; i++) {
+        let char = currentWord[i];
+        
+        if (i < typedText.length) {
+            if (char === typedText[i]) {
+                highlightedWord += `<span class="correct">${char}</span>`;
+            } else {
+                highlightedWord += `<span class="incorrect">${char}</span>`;
+                isMistake = true;
+                break; // 最初のミスタイプで処理を停止
+            }
+        } else if (i === typedText.length) {
+            // 次に入力すべき文字をハイライト
+            highlightedWord += `<span class="current-char">${char}</span>`;
+        } else {
+            // 未入力の文字
+            highlightedWord += char;
+        }
+    }
+
+    // ハイライト表示の更新
+    elements.wordDisplay.innerHTML = highlightedWord + (isMistake ? currentWord.substring(typedText.length) : '');
+
+    if (isMistake) {
+        // === ミスタイプ時のペナルティ処理 ===
+        GAME_STATE.mistakeCount++;
+        elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
+        elements.timer = Math.max(0, GAME_STATE.timer - DURATION_PENALTY); // 時間をマイナス5秒
+        elements.timer.textContent = GAME_STATE.timer;
+        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">ミス！ -${DURATION_PENALTY}秒ペナルティ</span>`;
+        
+        // ミス入力した文字は自動的に消える (入力ボックスの値をクリア)
+        elements.typingInput.value = '';
+        
+        if (GAME_STATE.timer <= 0) {
+            clearInterval(GAME_STATE.timerInterval);
+            gameOver();
+        }
+        
+    } else if (typedText.length === currentWord.length) {
+        // === 単語完了時の処理 ===
+        if (typedText === currentWord) {
+            GAME_STATE.score += currentWord.length * POINTS_PER_CHARACTER;
+            elements.score.textContent = GAME_STATE.score;
+            elements.feedbackMessage.innerHTML = `<span class="text-green-500 font-bold">PERFECT! +${currentWord.length * POINTS_PER_CHARACTER}ポイント</span>`;
+            
+            // 次の単語へ
+            GAME_STATE.currentWordIndex++;
+            
+            // わずかな遅延後、次の単語を表示
+            setTimeout(() => {
+                displayCurrentWord();
+            }, 500);
+        }
+    }
+});
+
+
+/**
+ * ゲームオーバー処理
+ */
+function gameOver() {
+    if (GAME_STATE.isGameOver) return;
+    
+    GAME_STATE.isGameOver = true;
+    GAME_STATE.isGameStarted = false;
+    clearInterval(GAME_STATE.timerInterval);
+    elements.typingInput.disabled = true;
+
+    changeScreen('result');
+}
+
+/**
+ * 結果画面の表示を更新する
+ */
+function displayResult() {
+    elements.finalScore.textContent = GAME_STATE.score;
+    elements.completedWords.textContent = GAME_STATE.currentWordIndex;
+    elements.totalWords.textContent = GAME_STATE.wordList.length;
+}
+
+
+// =========================================================
+// 5. TTS (Text-to-Speech) API 処理
+// =========================================================
+
+// APIキー (Canvas環境で自動提供されるため空文字列)
+const apiKey = ""; 
+const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+// PCMからWAVへの変換ユーティリティ
+function base64ToArrayBuffer(base64) {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function pcmToWav(pcm16Data, sampleRate) {
+    const buffer = new ArrayBuffer(44 + pcm16Data.byteLength);
+    const view = new DataView(buffer);
+    
+    /* RIFF header */
+    writeString(view, 0, 'RIFF'); // ChunkID
+    view.setUint32(4, 36 + pcm16Data.byteLength, true); // ChunkSize
+    writeString(view, 8, 'WAVE'); // Format
+
+    /* fmt sub-chunk */
+    writeString(view, 12, 'fmt '); // Subchunk1ID
+    view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+    view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+    const numChannels = 1;
+    view.setUint16(22, numChannels, true); // NumChannels
+    view.setUint32(24, sampleRate, true); // SampleRate
+    const bitsPerSample = 16;
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    view.setUint32(28, sampleRate * blockAlign, true); // ByteRate
+    view.setUint16(32, blockAlign, true); // BlockAlign
+    view.setUint16(34, bitsPerSample, true); // BitsPerSample
+
+    /* data sub-chunk */
+    writeString(view, 36, 'data'); // Subchunk2ID
+    view.setUint32(40, pcm16Data.byteLength, true); // Subchunk2Size
+
+    // PCMデータを書き込む
+    const pcmView = new Int16Array(buffer, 44);
+    pcmView.set(pcm16Data);
+    
+    return new Blob([view, pcm16Data], { type: 'audio/wav' });
+}
+
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
+
+/**
+ * 指定された単語の音声を再生する (TTS API経由)
+ * @param {string} word - 再生する英単語
+ */
+async function playWordAudio(word) {
+    elements.loading.classList.remove('hidden'); // ローディング表示
+    
+    const payload = {
+        contents: [{
+            parts: [{ text: `Say clearly and slowly: ${word}` }]
+        }],
+        generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: "Fenrir" } // 明瞭な声を選択
+                }
+            }
+        },
+        model: "gemini-2.5-flash-preview-tts"
+    };
+
+    let audioUrl = null;
+    let retries = 0;
+    const maxRetries = 5;
+    
+    while (retries < maxRetries) {
+        try {
+            const response = await fetch(ttsApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`API response error: ${response.status}`);
+            
+            const result = await response.json();
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+                const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                
+                const pcmDataBuffer = base64ToArrayBuffer(audioData);
+                const pcm16 = new Int16Array(pcmDataBuffer);
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                audioUrl = URL.createObjectURL(wavBlob);
+                
+                break; // 成功したらループを抜ける
+            } else {
+                console.error("Audio data or correct mime type missing:", result);
+            }
+        } catch (error) {
+            console.error(`TTS API call failed (Retry ${retries + 1}):`, error);
+        }
+        
+        retries++;
+        if (retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000)); // Exponential backoff
+        }
+    }
+
+    elements.loading.classList.add('hidden'); // ローディングを非表示
+
+    if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.play().catch(e => console.error("Audio play failed:", e));
+        audio.onended = () => URL.revokeObjectURL(audioUrl);
+    } else {
+        console.error("Failed to generate or play audio after retries.");
+        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声再生に失敗しました</span>`;
+    }
+}
+
+// =========================================================
+// 6. 初期化
+// =========================================================
+
+// ページロード時にホーム画面を表示
+window.onload = function() {
+    renderHomeMenu();
+    changeScreen('home');
+};
+
+</script>
