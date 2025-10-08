@@ -37,6 +37,19 @@
             border-radius: 4px;
             padding: 0 2px;
         }
+        .progress-bar-container {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #4f46e5;
+            transition: width 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +126,12 @@
                     Loading...
                 </div>
                 
+                <!-- ⑤ 再生ボタン (キャッシュ後も使えるように) -->
+                <button onclick="playCurrentWordAudio()" class="px-4 py-2 bg-indigo-500 text-white rounded-full text-sm font-semibold hover:bg-indigo-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1"><path d="M15.5 10c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5V7c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5v3z"/><path d="M12 18V14m-5.5-2.5c0 3.31 2.69 6 6 6s6-2.69 6-6"/></svg>
+                    再生
+                </button>
+
                 <!-- ④ 入力ボックス -->
                 <input type="text" id="typing-input" placeholder="タイプを開始してください" class="w-full md:w-3/4 p-4 text-2xl text-center border-4 border-indigo-400 rounded-xl focus:border-indigo-600 outline-none transition-all duration-300" autofocus disabled>
             </div>
@@ -141,11 +160,15 @@
             </button>
         </div>
         
-        <!-- APIロード中のインジケータ -->
-        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-            <div class="bg-white p-6 rounded-lg shadow-2xl flex items-center space-x-3">
-                <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-lg font-semibold text-indigo-700">音声データを準備中...</span>
+        <!-- APIロード中のインジケータ (事前ロード用) -->
+        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
+            <div class="bg-white p-8 rounded-lg shadow-2xl flex flex-col items-center space-y-4 w-11/12 max-w-sm">
+                <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span class="text-lg font-semibold text-indigo-700">単語の音声データを一括で準備中...</span>
+                <p id="loading-progress-text" class="text-sm text-gray-500">0 / 0 単語</p>
+                <div class="progress-bar-container w-full">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
             </div>
         </div>
 
@@ -258,6 +281,10 @@ const GAME_STATE = {
     isGameOver: false,
 };
 
+// 単語の音声データをキャッシュするMap (キー: 単語, 値: Audio URL)
+const audioCache = new Map();
+let isPreloading = false; // 事前ロード中フラグ
+
 const DURATION_PENALTY = 5; // ミスタイプ時のペナルティ秒数
 const POINTS_PER_CHARACTER = 10; // 1文字あたりのスコア
 
@@ -269,6 +296,8 @@ const elements = {
     game: $('game-screen'),
     result: $('result-screen'),
     loading: $('loading-overlay'),
+    progressBar: $('progress-bar'),
+    loadingProgressText: $('loading-progress-text'),
     
     // Game elements
     courseDisplay: $('current-course-display'),
@@ -331,6 +360,7 @@ function renderHomeMenu() {
             const button = document.createElement('button');
             button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
             button.textContent = courseName;
+            // コース名とセッション名を渡してstartGameを呼び出し
             button.onclick = () => {
                 startGame(session, courseName);
             };
@@ -345,7 +375,7 @@ function renderHomeMenu() {
 // =========================================================
 
 /**
- * コースを選択し、ゲーム状態を初期化してゲーム画面に遷移する
+ * コースを選択し、ゲーム状態を初期化して音声の事前ロードを開始する
  * @param {string} sessionName 
  * @param {string} courseName 
  */
@@ -364,20 +394,31 @@ function startGame(sessionName, courseName) {
 
     clearInterval(GAME_STATE.timerInterval);
     elements.typingInput.value = '';
-    elements.typingInput.disabled = false;
+    elements.typingInput.disabled = true; // 事前ロード中は無効
 
-    // UIの更新
+    // UIの初期設定
     elements.courseDisplay.textContent = `${sessionName} / ${courseName}`;
     elements.timer.textContent = GAME_STATE.timer;
     elements.score.textContent = GAME_STATE.score;
     elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
     elements.totalWords.textContent = GAME_STATE.wordList.length;
 
-    displayCurrentWord();
-    changeScreen('game');
+    // 音声の事前ロードを開始
+    preloadAllAudio(GAME_STATE.wordList).then(() => {
+        elements.typingInput.disabled = false; // ロード完了後に入力を有効化
+        elements.typingInput.focus();
+        displayCurrentWord();
+        changeScreen('game');
 
-    // 最初の入力でゲームが開始するようにイベントリスナーを設定
-    elements.typingInput.onkeydown = startOnFirstKeydown;
+        // 最初の入力でゲームが開始するようにイベントリスナーを設定
+        elements.typingInput.onkeydown = startOnFirstKeydown;
+    }).catch(error => {
+        console.error("音声の事前ロードに失敗しました:", error);
+        alert('音声の読み込みに失敗しました。ネットワークを確認してください。');
+        changeScreen('home');
+    });
+
+    changeScreen('game'); // ゲーム画面に一時的に遷移し、ローディングを表示
 }
 
 
@@ -434,8 +475,28 @@ function displayCurrentWord() {
     // 単語の表示を初期化 (最初の文字をハイライト)
     elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
 
-    // 音声の自動再生
-    playWordAudio(currentWordData.word);
+    // キャッシュ済みの音声を即座に再生
+    playCurrentWordAudio();
+}
+
+/**
+ * 現在の単語の音声を再生する
+ */
+function playCurrentWordAudio() {
+    const currentWord = GAME_STATE.wordList[GAME_STATE.currentWordIndex].word;
+    const audioUrl = audioCache.get(currentWord);
+
+    if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        // Chromeなどの自動再生制限を回避するため、play()がPromiseを返すことを考慮
+        audio.play().catch(e => {
+            console.warn("Audio play blocked, but should work on user interaction:", e);
+        });
+    } else {
+        console.error(`Audio for ${currentWord} not found in cache.`);
+        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声データが見つかりません</span>`;
+        // キャッシュにない場合はフォールバックとしてAPIを直接叩くことも可能だが、ここではキャッシュ利用を強制
+    }
 }
 
 
@@ -479,7 +540,7 @@ elements.typingInput.addEventListener('input', () => {
         // === ミスタイプ時のペナルティ処理 ===
         GAME_STATE.mistakeCount++;
         elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
-        elements.timer = Math.max(0, GAME_STATE.timer - DURATION_PENALTY); // 時間をマイナス5秒
+        GAME_STATE.timer = Math.max(0, GAME_STATE.timer - DURATION_PENALTY); // 時間をマイナス5秒
         elements.timer.textContent = GAME_STATE.timer;
         elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">ミス！ -${DURATION_PENALTY}秒ペナルティ</span>`;
         
@@ -535,14 +596,14 @@ function displayResult() {
 
 
 // =========================================================
-// 5. TTS (Text-to-Speech) API 処理
+// 5. TTS (Text-to-Speech) API 処理と事前ロード
 // =========================================================
 
 // APIキー (Canvas環境で自動提供されるため空文字列)
 const apiKey = ""; 
 const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
 
-// PCMからWAVへの変換ユーティリティ
+// PCMからWAVへの変換ユーティリティ (前回のものを流用)
 function base64ToArrayBuffer(base64) {
     const binaryString = atob(base64);
     const len = binaryString.length;
@@ -593,15 +654,15 @@ function writeString(view, offset, string) {
 }
 
 /**
- * 指定された単語の音声を再生する (TTS API経由)
- * @param {string} word - 再生する英単語
+ * TTS APIを呼び出し、単語の音声データを生成してURLを返す（プライベートヘルパー）
+ * @param {string} word - 生成する単語
+ * @returns {Promise<string>} - Blob URL
  */
-async function playWordAudio(word) {
-    elements.loading.classList.remove('hidden'); // ローディング表示
-    
+async function generateWordAudio(word) {
     const payload = {
         contents: [{
-            parts: [{ text: `Say clearly and slowly: ${word}` }]
+            // 指示を「ゆっくり」から「単語を言ってください」に変更し、自然な速度を促す
+            parts: [{ text: `Say the English word: ${word}` }]
         }],
         generationConfig: {
             responseModalities: ["AUDIO"],
@@ -614,7 +675,6 @@ async function playWordAudio(word) {
         model: "gemini-2.5-flash-preview-tts"
     };
 
-    let audioUrl = null;
     let retries = 0;
     const maxRetries = 5;
     
@@ -640,9 +700,9 @@ async function playWordAudio(word) {
                 const pcmDataBuffer = base64ToArrayBuffer(audioData);
                 const pcm16 = new Int16Array(pcmDataBuffer);
                 const wavBlob = pcmToWav(pcm16, sampleRate);
-                audioUrl = URL.createObjectURL(wavBlob);
                 
-                break; // 成功したらループを抜ける
+                // Blob URLを生成して返す
+                return URL.createObjectURL(wavBlob);
             } else {
                 console.error("Audio data or correct mime type missing:", result);
             }
@@ -656,17 +716,51 @@ async function playWordAudio(word) {
         }
     }
 
-    elements.loading.classList.add('hidden'); // ローディングを非表示
+    throw new Error(`Failed to generate audio for ${word} after ${maxRetries} retries.`);
+}
 
-    if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.play().catch(e => console.error("Audio play failed:", e));
-        audio.onended = () => URL.revokeObjectURL(audioUrl);
-    } else {
-        console.error("Failed to generate or play audio after retries.");
-        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声再生に失敗しました</span>`;
+
+/**
+ * コース内の全単語の音声データを事前ロードし、キャッシュする
+ * @param {Array<Object>} wordList - 単語リスト
+ * @returns {Promise<void>}
+ */
+async function preloadAllAudio(wordList) {
+    if (isPreloading) return;
+    isPreloading = true;
+    audioCache.clear();
+    
+    const totalWords = wordList.length;
+    elements.loading.classList.remove('hidden');
+    elements.progressBar.style.width = '0%';
+    elements.loadingProgressText.textContent = `0 / ${totalWords} 単語`;
+
+    try {
+        for (let i = 0; i < totalWords; i++) {
+            const word = wordList[i].word;
+            
+            // 進捗バーの更新
+            elements.loadingProgressText.textContent = `${i + 1} / ${totalWords} 単語 (${word})`;
+            elements.progressBar.style.width = `${((i + 1) / totalWords) * 100}%`;
+            
+            // 音声生成とキャッシュ
+            const audioUrl = await generateWordAudio(word);
+            audioCache.set(word, audioUrl);
+        }
+        
+        console.log(`Preloading completed for ${totalWords} words.`);
+        
+    } catch (error) {
+        // エラー発生時、キャッシュをクリアしてローディングを閉じる
+        audioCache.clear();
+        console.error("Critical error during audio preloading:", error);
+        throw error;
+    } finally {
+        elements.loading.classList.add('hidden');
+        isPreloading = false;
     }
 }
+
 
 // =========================================================
 // 6. 初期化
