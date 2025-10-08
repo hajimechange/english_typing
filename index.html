@@ -8,10 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* カスタムスタイル */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8;
-            transition: background-color 0.3s;
         }
         .container {
             max-width: 900px;
@@ -27,7 +27,7 @@
             font-family: 'Consolas', 'Courier New', monospace;
             min-height: 2.5em; /* 文字の点滅を避ける */
             user-select: none;
-            display: flex; /* 中央揃えのために追加 */
+            display: flex; 
             align-items: center;
             justify-content: center;
         }
@@ -37,19 +37,6 @@
             background-color: #fef08a; /* 黄色のハイライト */
             border-radius: 4px;
             padding: 0 2px;
-        }
-        .progress-bar-container {
-            height: 10px;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background-color: #4f46e5;
-            transition: width 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -114,7 +101,7 @@
                 </div>
             </div>
 
-            <!-- 単語とUIエリア (ここが修正されました) -->
+            <!-- 単語とUIエリア -->
             <div class="flex flex-col items-center space-y-6 w-full"> 
                 
                 <!-- 1. 英単語表示エリア (最上部) -->
@@ -125,12 +112,6 @@
                 <!-- 2. 日本語の意味 (大きく表示) -->
                 <p id="word-meaning" class="text-4xl font-extrabold text-gray-800 mb-4 p-2">日本語の意味</p>
                 
-                <!-- 再生ボタン -->
-                <button onclick="playCurrentWordAudio()" class="px-6 py-3 bg-indigo-600 text-white rounded-full text-base font-semibold hover:bg-indigo-700 transition-colors shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1"><path d="M15.5 10c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5V7c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5v3z"/><path d="M12 18V14m-5.5-2.5c0 3.31 2.69 6 6 6s6-2.69 6-6"/></svg>
-                    再生
-                </button>
-
                 <!-- 3. 入力ボックス -->
                 <input type="text" id="typing-input" placeholder="タイプを開始してください" class="w-full md:w-3/4 p-4 text-2xl text-center border-4 border-indigo-400 rounded-xl focus:border-indigo-600 outline-none transition-all duration-300" autofocus disabled>
             </div>
@@ -151,7 +132,7 @@
             <p class="text-xl text-gray-600">
                 <span id="completed-words">0</span> / <span id="total-words">0</span> 単語を完了しました。
             </p>
-            <button onclick="initGame(GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+            <button onclick="startGame(GAME_STATE.selectedSession, GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
                 このコースで再チャレンジ！
             </button>
             <button onclick="changeScreen('home')" class="mt-4 px-6 py-3 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors block mx-auto">
@@ -159,18 +140,6 @@
             </button>
         </div>
         
-        <!-- APIロード中のインジケータ (事前ロード用) -->
-        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
-            <div class="bg-white p-8 rounded-lg shadow-2xl flex flex-col items-center space-y-4 w-11/12 max-w-sm">
-                <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-lg font-semibold text-indigo-700">単語の音声データを一括で準備中...</span>
-                <p id="loading-progress-text" class="text-sm text-gray-500">0 / 0 単語</p>
-                <div class="progress-bar-container w-full">
-                    <div id="progress-bar" class="progress-bar"></div>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 
@@ -269,6 +238,7 @@ const WORD_DATA = {
 // =========================================================
 
 const GAME_STATE = {
+    selectedSession: null, // 再チャレンジボタンのためにセッション名も保持
     selectedCourse: null,
     wordList: [],
     currentWordIndex: 0,
@@ -280,13 +250,8 @@ const GAME_STATE = {
     isGameOver: false,
 };
 
-// 単語の音声データをキャッシュするMap (キー: 単語, 値: Audio URL)
-const audioCache = new Map();
-let isPreloading = false; // 事前ロード中フラグ
-
 const DURATION_PENALTY = 5; // ミスタイプ時のペナルティ秒数
 const POINTS_PER_CHARACTER = 10; // 1文字あたりのスコア
-const MAX_CONCURRENT_REQUESTS = 5; // 同時リクエスト数の上限を設定
 
 // DOM要素の参照
 const $ = id => document.getElementById(id);
@@ -295,9 +260,6 @@ const elements = {
     home: $('home-screen'),
     game: $('game-screen'),
     result: $('result-screen'),
-    loading: $('loading-overlay'),
-    progressBar: $('progress-bar'),
-    loadingProgressText: $('loading-progress-text'),
     
     // Game elements
     courseDisplay: $('current-course-display'),
@@ -305,7 +267,6 @@ const elements = {
     score: $('score'),
     mistakeCount: $('mistake-count'),
     wordProgress: $('word-progress'),
-    // wordImage: $('word-image'), // 削除された
     wordMeaning: $('word-meaning'),
     wordDisplay: $('word-display'),
     typingInput: $('typing-input'),
@@ -375,7 +336,7 @@ function renderHomeMenu() {
 // =========================================================
 
 /**
- * コースを選択し、ゲーム状態を初期化して音声の事前ロードを開始する
+ * コースを選択し、ゲーム状態を初期化してゲームを開始する
  * @param {string} sessionName 
  * @param {string} courseName 
  */
@@ -383,6 +344,7 @@ function startGame(sessionName, courseName) {
     if (!WORD_DATA[sessionName] || !WORD_DATA[sessionName][courseName]) return;
 
     // ゲーム状態のリセット
+    GAME_STATE.selectedSession = sessionName; // セッション名も保存
     GAME_STATE.selectedCourse = courseName;
     GAME_STATE.wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
     GAME_STATE.currentWordIndex = 0;
@@ -394,7 +356,7 @@ function startGame(sessionName, courseName) {
 
     clearInterval(GAME_STATE.timerInterval);
     elements.typingInput.value = '';
-    elements.typingInput.disabled = true; // 事前ロード中は無効
+    elements.typingInput.disabled = false; // 入力を有効化
 
     // UIの初期設定
     elements.courseDisplay.textContent = `${sessionName} / ${courseName}`;
@@ -403,29 +365,13 @@ function startGame(sessionName, courseName) {
     elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
     elements.totalWords.textContent = GAME_STATE.wordList.length;
 
-    // 音声の事前ロードを開始
-    preloadAllAudio(GAME_STATE.wordList).then(() => {
-        elements.typingInput.disabled = false; // ロード完了後に入力を有効化
-        elements.typingInput.focus();
-        displayCurrentWord();
-        changeScreen('game');
+    // ゲーム開始
+    elements.typingInput.focus();
+    displayCurrentWord();
+    changeScreen('game');
 
-        // 最初の入力でゲームが開始するようにイベントリスナーを設定
-        elements.typingInput.onkeydown = startOnFirstKeydown;
-    }).catch(error => {
-        console.error("音声の事前ロードに失敗しました:", error);
-        // エラーが発生した場合もゲーム自体は続行できるようにする
-        elements.typingInput.disabled = false;
-        elements.typingInput.focus();
-        displayCurrentWord();
-        changeScreen('game');
-        // エラーフィードバック
-        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声の読み込みに失敗しました。再生ボタンが機能しない場合があります。</span>`;
-        // 最初の入力でゲームが開始するようにイベントリスナーを設定
-        elements.typingInput.onkeydown = startOnFirstKeydown;
-    });
-
-    changeScreen('game'); // ゲーム画面に一時的に遷移し、ローディングを表示
+    // 最初の入力でゲームが開始するようにイベントリスナーを設定
+    elements.typingInput.onkeydown = startOnFirstKeydown;
 }
 
 
@@ -461,7 +407,7 @@ function startTimer() {
 
 
 /**
- * 現在の単語を画面に表示し、音声再生を開始する
+ * 現在の単語を画面に表示する
  */
 function displayCurrentWord() {
     if (GAME_STATE.currentWordIndex >= GAME_STATE.wordList.length) {
@@ -475,34 +421,11 @@ function displayCurrentWord() {
     elements.typingInput.value = '';
     elements.typingInput.focus();
     elements.wordMeaning.textContent = currentWordData.meaning;
-    // elements.wordImage.src = ... (削除)
     elements.wordProgress.textContent = `${GAME_STATE.currentWordIndex} / ${GAME_STATE.wordList.length}`;
     elements.feedbackMessage.textContent = '';
     
     // 単語の表示を初期化 (最初の文字をハイライト)
     elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
-
-    // キャッシュ済みの音声を即座に再生
-    playCurrentWordAudio();
-}
-
-/**
- * 現在の単語の音声を再生する
- */
-function playCurrentWordAudio() {
-    const currentWord = GAME_STATE.wordList[GAME_STATE.currentWordIndex].word;
-    const audioUrl = audioCache.get(currentWord);
-
-    if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        // Chromeなどの自動再生制限を回避するため、play()がPromiseを返すことを考慮
-        audio.play().catch(e => {
-            console.warn("Audio play blocked, but should work on user interaction:", e);
-        });
-    } else {
-        console.warn(`Audio for ${currentWord} not found in cache. This is expected if preloading failed.`);
-        // elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声データが見つかりません</span>`;
-    }
 }
 
 
@@ -602,213 +525,7 @@ function displayResult() {
 
 
 // =========================================================
-// 5. TTS (Text-to-Speech) API 処理と事前ロード
-// (音声機能のコードはそのまま残します)
-// =========================================================
-
-// APIキー (Canvas環境で自動提供されるため空文字列)
-const apiKey = ""; 
-const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
-// PCMからWAVへの変換ユーティリティ
-function base64ToArrayBuffer(base64) {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
-
-function pcmToWav(pcm16Data, sampleRate) {
-    const buffer = new ArrayBuffer(44 + pcm16Data.byteLength);
-    const view = new DataView(buffer);
-    
-    /* RIFF header */
-    writeString(view, 0, 'RIFF'); // ChunkID
-    view.setUint32(4, 36 + pcm16Data.byteLength, true); // ChunkSize
-    writeString(view, 8, 'WAVE'); // Format
-
-    /* fmt sub-chunk */
-    writeString(view, 12, 'fmt '); // Subchunk1ID
-    view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
-    view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
-    const numChannels = 1;
-    view.setUint16(22, numChannels, true); // NumChannels
-    view.setUint32(24, sampleRate, true); // SampleRate
-    const bitsPerSample = 16;
-    const blockAlign = numChannels * (bitsPerSample / 8);
-    view.setUint32(28, sampleRate * blockAlign, true); // ByteRate
-    view.setUint16(32, blockAlign, true); // BlockAlign
-    view.setUint16(34, bitsPerSample, true); // BitsPerSample
-
-    /* data sub-chunk */
-    writeString(view, 36, 'data'); // Subchunk2ID
-    view.setUint32(40, pcm16Data.byteLength, true); // Subchunk2Size
-
-    // PCMデータを書き込む
-    const pcmView = new Int16Array(buffer, 44);
-    pcmView.set(pcm16Data);
-    
-    return new Blob([view, pcm16Data], { type: 'audio/wav' });
-}
-
-function writeString(view, offset, string) {
-    for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-    }
-}
-
-/**
- * TTS APIを呼び出し、単語の音声データを生成してURLを返す（プライベートヘルパー）
- * リトライロジックを含む
- * @param {string} word - 生成する単語
- * @returns {Promise<string>} - Blob URL
- */
-async function generateWordAudio(word) {
-    const payload = {
-        contents: [{
-            parts: [{ text: `Say the English word: ${word}` }]
-        }],
-        generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-                voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: "Fenrir" } // 明瞭な声を選択
-                }
-            }
-        },
-        model: "gemini-2.5-flash-preview-tts"
-    };
-
-    let retries = 0;
-    const maxRetries = 5;
-    
-    while (retries < maxRetries) {
-        try {
-            const response = await fetch(ttsApiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error(`API response error: ${response.status}`);
-            
-            const result = await response.json();
-            const part = result?.candidates?.[0]?.content?.parts?.[0];
-            const audioData = part?.inlineData?.data;
-            const mimeType = part?.inlineData?.mimeType;
-
-            if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
-                const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-                const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
-                
-                const pcmDataBuffer = base64ToArrayBuffer(audioData);
-                const pcm16 = new Int16Array(pcmDataBuffer);
-                const wavBlob = pcmToWav(pcm16, sampleRate);
-                
-                // Blob URLを生成して返す
-                return URL.createObjectURL(wavBlob);
-            } else {
-                console.error(`Audio data or correct mime type missing for ${word}:`, result);
-                throw new Error(`Invalid TTS response for ${word}`);
-            }
-        } catch (error) {
-            console.warn(`TTS API call failed for ${word} (Retry ${retries + 1}):`, error);
-        }
-        
-        retries++;
-        if (retries < maxRetries) {
-            // 指数関数的なバックオフ
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000)); 
-        }
-    }
-
-    throw new Error(`Failed to generate audio for ${word} after ${maxRetries} retries.`);
-}
-
-
-/**
- * コース内の全単語の音声データを事前ロードし、キャッシュする
- * @param {Array<Object>} wordList - 単語リスト
- * @returns {Promise<void>}
- */
-async function preloadAllAudio(wordList) {
-    if (isPreloading) return;
-    isPreloading = true;
-    audioCache.clear();
-    
-    const totalWords = wordList.length;
-    let loadedCount = 0; // 読み込みが完了した単語数
-
-    elements.loading.classList.remove('hidden');
-    
-    const updateProgress = (word) => {
-        loadedCount++;
-        const progressPercentage = (loadedCount / totalWords) * 100;
-        elements.loadingProgressText.textContent = `${loadedCount} / ${totalWords} 単語 (現在: ${word})`;
-        elements.progressBar.style.width = `${progressPercentage}%`;
-    };
-
-    // すべての単語の音声生成タスクを作成
-    const tasks = wordList.map(item => async () => {
-        try {
-            const audioUrl = await generateWordAudio(item.word);
-            audioCache.set(item.word, audioUrl);
-            updateProgress(item.word);
-            return { word: item.word, success: true };
-        } catch (error) {
-            // エラーが発生しても、他の単語の処理は続行
-            console.error(`Failed to cache ${item.word}:`, error);
-            updateProgress(item.word);
-            return { word: item.word, success: false };
-        }
-    });
-
-    try {
-        // 並列実行制御 (MAX_CONCURRENT_REQUESTS個ずつ実行)
-        const results = [];
-        const runningTasks = [];
-
-        for (const task of tasks) {
-            const running = task(); // タスクを実行
-            runningTasks.push(running);
-
-            if (runningTasks.length >= MAX_CONCURRENT_REQUESTS) {
-                // 実行中のタスクのいずれかが完了するのを待つ
-                const completed = await Promise.race(runningTasks.map(p => p.then(result => ({ p, result }))));
-                results.push(completed.result);
-                // 完了したタスクをリストから削除
-                runningTasks.splice(runningTasks.indexOf(completed.p), 1);
-            }
-        }
-
-        // 残りの実行中のタスクがすべて完了するのを待つ
-        results.push(...await Promise.all(runningTasks));
-
-        // 失敗した単語がないかチェック (ここでは警告に留め、ゲームは開始させる)
-        const failedWords = results.filter(r => !r.success);
-        if (failedWords.length > 0) {
-            console.warn(`音声ロードに失敗した単語があります: ${failedWords.map(r => r.word).join(', ')}`);
-        }
-        
-        console.log(`Preloading completed for ${totalWords} words.`);
-        
-    } catch (error) {
-        // 大元のエラー処理
-        audioCache.clear();
-        console.error("Critical error during audio preloading:", error);
-        throw error;
-    } finally {
-        elements.loading.classList.add('hidden');
-        isPreloading = false;
-    }
-}
-
-
-// =========================================================
-// 6. 初期化
+// 5. 初期化
 // =========================================================
 
 // ページロード時にホーム画面を表示
