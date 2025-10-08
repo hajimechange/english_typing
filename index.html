@@ -6,8 +6,6 @@
     <title>英単語タイピングゲーム</title>
     <!-- Tailwind CSS CDNを読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons (React用ではないが、ここでは使わないので問題なし) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         /* カスタムスタイル */
         body {
@@ -29,6 +27,9 @@
             font-family: 'Consolas', 'Courier New', monospace;
             min-height: 2.5em; /* 文字の点滅を避ける */
             user-select: none;
+            display: flex; /* 中央揃えのために追加 */
+            align-items: center;
+            justify-content: center;
         }
         .correct { color: #10b981; } /* エメラルドグリーン */
         .incorrect { color: #ef4444; } /* 赤色 */
@@ -113,26 +114,24 @@
                 </div>
             </div>
 
-            <!-- 単語と画像エリア -->
-            <div class="flex flex-col items-center space-y-4">
-                <!-- ① 画像/イラスト -->
-                <img id="word-image" src="" alt="表示中の単語のイラスト" class="w-full max-w-xs h-40 object-cover rounded-lg shadow-md border-4 border-gray-200">
+            <!-- 単語とUIエリア (ここが修正されました) -->
+            <div class="flex flex-col items-center space-y-6 w-full"> 
                 
-                <!-- ③ 日本語の意味 -->
-                <p id="word-meaning" class="text-xl font-medium text-gray-600 mb-2">日本語の意味</p>
-                
-                <!-- ② 英単語表示エリア -->
-                <div id="word-display" class="text-5xl font-extrabold tracking-wider p-4 bg-gray-50 rounded-lg w-full text-center shadow-inner">
+                <!-- 1. 英単語表示エリア (最上部) -->
+                <div id="word-display" class="text-6xl font-extrabold tracking-wider p-6 bg-gray-50 rounded-xl w-full text-center shadow-inner min-h-[3.5em]">
                     Loading...
                 </div>
                 
-                <!-- ⑤ 再生ボタン (キャッシュ後も使えるように) -->
-                <button onclick="playCurrentWordAudio()" class="px-4 py-2 bg-indigo-500 text-white rounded-full text-sm font-semibold hover:bg-indigo-600 transition-colors">
+                <!-- 2. 日本語の意味 (大きく表示) -->
+                <p id="word-meaning" class="text-4xl font-extrabold text-gray-800 mb-4 p-2">日本語の意味</p>
+                
+                <!-- 再生ボタン -->
+                <button onclick="playCurrentWordAudio()" class="px-6 py-3 bg-indigo-600 text-white rounded-full text-base font-semibold hover:bg-indigo-700 transition-colors shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1"><path d="M15.5 10c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5V7c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5v3z"/><path d="M12 18V14m-5.5-2.5c0 3.31 2.69 6 6 6s6-2.69 6-6"/></svg>
                     再生
                 </button>
 
-                <!-- ④ 入力ボックス -->
+                <!-- 3. 入力ボックス -->
                 <input type="text" id="typing-input" placeholder="タイプを開始してください" class="w-full md:w-3/4 p-4 text-2xl text-center border-4 border-indigo-400 rounded-xl focus:border-indigo-600 outline-none transition-all duration-300" autofocus disabled>
             </div>
             
@@ -306,7 +305,7 @@ const elements = {
     score: $('score'),
     mistakeCount: $('mistake-count'),
     wordProgress: $('word-progress'),
-    wordImage: $('word-image'),
+    // wordImage: $('word-image'), // 削除された
     wordMeaning: $('word-meaning'),
     wordDisplay: $('word-display'),
     typingInput: $('typing-input'),
@@ -415,8 +414,15 @@ function startGame(sessionName, courseName) {
         elements.typingInput.onkeydown = startOnFirstKeydown;
     }).catch(error => {
         console.error("音声の事前ロードに失敗しました:", error);
-        alert('音声の読み込みに失敗しました。ネットワークを確認してください。');
-        changeScreen('home');
+        // エラーが発生した場合もゲーム自体は続行できるようにする
+        elements.typingInput.disabled = false;
+        elements.typingInput.focus();
+        displayCurrentWord();
+        changeScreen('game');
+        // エラーフィードバック
+        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声の読み込みに失敗しました。再生ボタンが機能しない場合があります。</span>`;
+        // 最初の入力でゲームが開始するようにイベントリスナーを設定
+        elements.typingInput.onkeydown = startOnFirstKeydown;
     });
 
     changeScreen('game'); // ゲーム画面に一時的に遷移し、ローディングを表示
@@ -469,7 +475,7 @@ function displayCurrentWord() {
     elements.typingInput.value = '';
     elements.typingInput.focus();
     elements.wordMeaning.textContent = currentWordData.meaning;
-    elements.wordImage.src = `https://placehold.co/320x160/9ca3af/ffffff?text=${currentWordData.word}`; // 単語のプレースホルダー画像
+    // elements.wordImage.src = ... (削除)
     elements.wordProgress.textContent = `${GAME_STATE.currentWordIndex} / ${GAME_STATE.wordList.length}`;
     elements.feedbackMessage.textContent = '';
     
@@ -494,9 +500,8 @@ function playCurrentWordAudio() {
             console.warn("Audio play blocked, but should work on user interaction:", e);
         });
     } else {
-        console.error(`Audio for ${currentWord} not found in cache.`);
-        elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声データが見つかりません</span>`;
-        // キャッシュにない場合はフォールバックとしてAPIを直接叩くことも可能だが、ここではキャッシュ利用を強制
+        console.warn(`Audio for ${currentWord} not found in cache. This is expected if preloading failed.`);
+        // elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">音声データが見つかりません</span>`;
     }
 }
 
@@ -598,13 +603,14 @@ function displayResult() {
 
 // =========================================================
 // 5. TTS (Text-to-Speech) API 処理と事前ロード
+// (音声機能のコードはそのまま残します)
 // =========================================================
 
 // APIキー (Canvas環境で自動提供されるため空文字列)
 const apiKey = ""; 
 const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
 
-// PCMからWAVへの変換ユーティリティ (前回のものを流用)
+// PCMからWAVへの変換ユーティリティ
 function base64ToArrayBuffer(base64) {
     const binaryString = atob(base64);
     const len = binaryString.length;
@@ -663,7 +669,6 @@ function writeString(view, offset, string) {
 async function generateWordAudio(word) {
     const payload = {
         contents: [{
-            // 指示を「ゆっくり」から「単語を言ってください」に変更し、自然な速度を促す
             parts: [{ text: `Say the English word: ${word}` }]
         }],
         generationConfig: {
@@ -726,7 +731,6 @@ async function generateWordAudio(word) {
 
 /**
  * コース内の全単語の音声データを事前ロードし、キャッシュする
- * ★ 並列処理を制御し、安定性を向上させるためにロジックを修正
  * @param {Array<Object>} wordList - 単語リスト
  * @returns {Promise<void>}
  */
@@ -773,22 +777,20 @@ async function preloadAllAudio(wordList) {
 
             if (runningTasks.length >= MAX_CONCURRENT_REQUESTS) {
                 // 実行中のタスクのいずれかが完了するのを待つ
-                const completed = await Promise.race(runningTasks);
-                results.push(completed);
+                const completed = await Promise.race(runningTasks.map(p => p.then(result => ({ p, result }))));
+                results.push(completed.result);
                 // 完了したタスクをリストから削除
-                runningTasks.splice(runningTasks.indexOf(completed), 1);
+                runningTasks.splice(runningTasks.indexOf(completed.p), 1);
             }
         }
 
         // 残りの実行中のタスクがすべて完了するのを待つ
         results.push(...await Promise.all(runningTasks));
 
-        // 失敗した単語がないかチェック
+        // 失敗した単語がないかチェック (ここでは警告に留め、ゲームは開始させる)
         const failedWords = results.filter(r => !r.success);
         if (failedWords.length > 0) {
-            const errorMsg = `以下の単語の音声ロードに失敗しました: ${failedWords.map(r => r.word).join(', ')}`;
-            console.error(errorMsg);
-            throw new Error(errorMsg);
+            console.warn(`音声ロードに失敗した単語があります: ${failedWords.map(r => r.word).join(', ')}`);
         }
         
         console.log(`Preloading completed for ${totalWords} words.`);
