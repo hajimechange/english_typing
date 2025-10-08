@@ -287,6 +287,7 @@ let isPreloading = false; // 事前ロード中フラグ
 
 const DURATION_PENALTY = 5; // ミスタイプ時のペナルティ秒数
 const POINTS_PER_CHARACTER = 10; // 1文字あたりのスコア
+const MAX_CONCURRENT_REQUESTS = 5; // 同時リクエスト数の上限を設定
 
 // DOM要素の参照
 const $ = id => document.getElementById(id);
@@ -655,6 +656,7 @@ function writeString(view, offset, string) {
 
 /**
  * TTS APIを呼び出し、単語の音声データを生成してURLを返す（プライベートヘルパー）
+ * リトライロジックを含む
  * @param {string} word - 生成する単語
  * @returns {Promise<string>} - Blob URL
  */
@@ -704,15 +706,17 @@ async function generateWordAudio(word) {
                 // Blob URLを生成して返す
                 return URL.createObjectURL(wavBlob);
             } else {
-                console.error("Audio data or correct mime type missing:", result);
+                console.error(`Audio data or correct mime type missing for ${word}:`, result);
+                throw new Error(`Invalid TTS response for ${word}`);
             }
         } catch (error) {
-            console.error(`TTS API call failed (Retry ${retries + 1}):`, error);
+            console.warn(`TTS API call failed for ${word} (Retry ${retries + 1}):`, error);
         }
         
         retries++;
         if (retries < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000)); // Exponential backoff
+            // 指数関数的なバックオフ
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000)); 
         }
     }
 
@@ -722,6 +726,7 @@ async function generateWordAudio(word) {
 
 /**
  * コース内の全単語の音声データを事前ロードし、キャッシュする
+ * ★ 並列処理を制御し、安定性を向上させるためにロジックを修正
  * @param {Array<Object>} wordList - 単語リスト
  * @returns {Promise<void>}
  */
@@ -731,27 +736,65 @@ async function preloadAllAudio(wordList) {
     audioCache.clear();
     
     const totalWords = wordList.length;
+    let loadedCount = 0; // 読み込みが完了した単語数
+
     elements.loading.classList.remove('hidden');
-    elements.progressBar.style.width = '0%';
-    elements.loadingProgressText.textContent = `0 / ${totalWords} 単語`;
+    
+    const updateProgress = (word) => {
+        loadedCount++;
+        const progressPercentage = (loadedCount / totalWords) * 100;
+        elements.loadingProgressText.textContent = `${loadedCount} / ${totalWords} 単語 (現在: ${word})`;
+        elements.progressBar.style.width = `${progressPercentage}%`;
+    };
+
+    // すべての単語の音声生成タスクを作成
+    const tasks = wordList.map(item => async () => {
+        try {
+            const audioUrl = await generateWordAudio(item.word);
+            audioCache.set(item.word, audioUrl);
+            updateProgress(item.word);
+            return { word: item.word, success: true };
+        } catch (error) {
+            // エラーが発生しても、他の単語の処理は続行
+            console.error(`Failed to cache ${item.word}:`, error);
+            updateProgress(item.word);
+            return { word: item.word, success: false };
+        }
+    });
 
     try {
-        for (let i = 0; i < totalWords; i++) {
-            const word = wordList[i].word;
-            
-            // 進捗バーの更新
-            elements.loadingProgressText.textContent = `${i + 1} / ${totalWords} 単語 (${word})`;
-            elements.progressBar.style.width = `${((i + 1) / totalWords) * 100}%`;
-            
-            // 音声生成とキャッシュ
-            const audioUrl = await generateWordAudio(word);
-            audioCache.set(word, audioUrl);
+        // 並列実行制御 (MAX_CONCURRENT_REQUESTS個ずつ実行)
+        const results = [];
+        const runningTasks = [];
+
+        for (const task of tasks) {
+            const running = task(); // タスクを実行
+            runningTasks.push(running);
+
+            if (runningTasks.length >= MAX_CONCURRENT_REQUESTS) {
+                // 実行中のタスクのいずれかが完了するのを待つ
+                const completed = await Promise.race(runningTasks);
+                results.push(completed);
+                // 完了したタスクをリストから削除
+                runningTasks.splice(runningTasks.indexOf(completed), 1);
+            }
+        }
+
+        // 残りの実行中のタスクがすべて完了するのを待つ
+        results.push(...await Promise.all(runningTasks));
+
+        // 失敗した単語がないかチェック
+        const failedWords = results.filter(r => !r.success);
+        if (failedWords.length > 0) {
+            const errorMsg = `以下の単語の音声ロードに失敗しました: ${failedWords.map(r => r.word).join(', ')}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
         
         console.log(`Preloading completed for ${totalWords} words.`);
         
     } catch (error) {
-        // エラー発生時、キャッシュをクリアしてローディングを閉じる
+        // 大元のエラー処理
         audioCache.clear();
         console.error("Critical error during audio preloading:", error);
         throw error;
