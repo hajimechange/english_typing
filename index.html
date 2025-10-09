@@ -189,7 +189,7 @@
 
 <script>
 // =========================================================
-// 1. データ定義 (英単語 + 英文 全360問)
+// 1. データ定義 (英単語 + 英文 全360問) - スタンダードコース用
 // =========================================================
 
 const WORD_DATA = {
@@ -392,10 +392,12 @@ const WORD_DATA = {
 
 // =========================================================
 // 2. 構文テンプレートと単語リスト (ハイレベルコース用)
+//    - 語彙の関連性を考慮して再構築
 // =========================================================
 
 // 品詞ごとの単語リスト (Lexicon)
 const LEXICON = {
+    // 1. 主語 (三人称単数情報を含む)
     PRONOUN_S: [
         { word: "I", meaning: "私は", singular: false }, 
         { word: "You", meaning: "あなたは", singular: false }, 
@@ -404,30 +406,25 @@ const LEXICON = {
         { word: "We", meaning: "私たちは", singular: false }, 
         { word: "They", meaning: "彼らは", singular: false }
     ],
-    PRONOUN_O: [
-        { word: "apple", meaning: "りんご" }, 
-        { word: "dog", meaning: "犬" }, 
-        { word: "book", meaning: "本" }, 
-        { word: "coffee", meaning: "コーヒー" }, 
-        { word: "pen", meaning: "ペン" }
+    // 2. Be動詞 (主語によって自動選択されるため、補助データ)
+    BE_VERB: [
+        { word: "am", meaning: "です/いる", subject: "I" },
+        { word: "are", meaning: "です/いる", subject: "You/We/They" },
+        { word: "is", meaning: "です/いる", subject: "He/She" },
     ],
-    V_BASE: [
-        { word: "eat", meaning: "食べる" }, 
-        { word: "drink", meaning: "飲む" }, 
-        { word: "buy", meaning: "買う" }, 
-        { word: "read", meaning: "読む" }, 
-        { word: "write", meaning: "書く" },
-        { word: "see", meaning: "見る" }, 
-        { word: "know", meaning: "知る" },
-        { word: "play", meaning: "遊ぶ/する" },
-        { word: "speak", meaning: "話す" }
+    // 3. 一般動詞 (目的語のカテゴリ情報を持つ)
+    V_TRANSITIVE: [
+        { word: "eat", meaning: "食べる", category: "FOOD_DRINK" }, 
+        { word: "drink", meaning: "飲む", category: "FOOD_DRINK" }, 
+        { word: "buy", meaning: "買う", category: "OBJECTS" }, 
+        { word: "read", meaning: "読む", category: "MEDIA" }, 
+        { word: "write", meaning: "書く", category: "MEDIA" },
+        { word: "see", meaning: "見る", category: "MEDIA" }, // 映画、ニュースなどを見る
+        { word: "know", meaning: "知っている", category: "ABSTRACT" },
+        { word: "play", meaning: "する/演奏する", category: "SPORTS_MUSIC" },
+        { word: "speak", meaning: "話す", category: "LANGUAGE" }
     ],
-    NOUN_S: [
-        { word: "student", meaning: "生徒" }, 
-        { word: "teacher", meaning: "先生" }, 
-        { word: "engineer", meaning: "エンジニア" }, 
-        { word: "doctor", meaning: "医者" }
-    ],
+    // 4. 形容詞
     ADJ: [
         { word: "happy", meaning: "幸せな" }, 
         { word: "sad", meaning: "悲しい" }, 
@@ -436,34 +433,64 @@ const LEXICON = {
         { word: "good", meaning: "良い" },
         { word: "new", meaning: "新しい" }
     ],
-    BE_VERB: [
-        { word: "am", meaning: "です/いる", subject: "I" },
-        { word: "are", meaning: "です/いる", subject: "You/We/They" },
-        { word: "is", meaning: "です/いる", subject: "He/She" },
+    // 5. 名詞 (Be動詞の補語C用)
+    NOUN_S: [
+        { word: "a student", meaning: "生徒" }, 
+        { word: "a teacher", meaning: "先生" }, 
+        { word: "an engineer", meaning: "エンジニア" }, 
+        { word: "a doctor", meaning: "医者" }
     ],
-    ARTICLE: [
-        { word: "a", meaning: "1つの" }, 
-        { word: "an", meaning: "1つの" }, 
-        { word: "the", meaning: "その" }
-    ],
+    // 6. 目的語 (動詞カテゴリに対応)
+    O_CATEGORY: {
+        FOOD_DRINK: [
+            { word: "an apple", meaning: "りんご" }, 
+            { word: "some bread", meaning: "パン" }, 
+            { word: "some coffee", meaning: "コーヒー" },
+            { word: "the water", meaning: "水" }
+        ],
+        OBJECTS: [
+            { word: "a new car", meaning: "新しい車" }, 
+            { word: "a book", meaning: "本" }, 
+            { word: "a pen", meaning: "ペン" }
+        ],
+        MEDIA: [
+            { word: "the news", meaning: "ニュース" }, 
+            { word: "a novel", meaning: "小説" }, 
+            { word: "a letter", meaning: "手紙" },
+            { word: "a movie", meaning: "映画" }
+        ],
+        SPORTS_MUSIC: [
+            { word: "soccer", meaning: "サッカー" }, 
+            { word: "the guitar", meaning: "ギター" }, 
+            { word: "basketball", meaning: "バスケットボール" }
+        ],
+        LANGUAGE: [
+            { word: "English", meaning: "英語" },
+            { word: "Japanese", meaning: "日本語" },
+            { word: "French", meaning: "フランス語" }
+        ],
+        ABSTRACT: [
+            { word: "the truth", meaning: "真実" },
+            { word: "the answer", meaning: "答え" }
+        ]
+    }
 };
 
-// 構文テンプレートの定義
-// template: [品詞, 品詞, ...]
+// 構文テンプレートの定義 (OBJECT_COMPLEMENT はロジックで解決されるマーカー)
 const SENTENCE_TEMPLATES = {
-    // S + V + O (Present Simple) - 私はリンゴを食べる
+    // S + V + O (Present Simple) - 私は本を読む
     SV_O_BASIC: {
-        template: ['PRONOUN_S', 'V_BASE', 'PRONOUN_O'], 
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{PRONOUN_O}', 'を', '{V_BASE}', '。']
+        template: ['PRONOUN_S', 'V_TRANSITIVE', 'OBJECT_COMPLEMENT'], 
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{OBJECT_COMPLEMENT}', 'を', '{V_TRANSITIVE}', '。']
     },
-    // S + can + V + O - 彼は本を読むことができる
+    // S + can + V + O - 彼はギターを弾くことができる
     MODAL_CAN: {
-        template: ['PRONOUN_S', 'can', 'V_BASE', 'PRONOUN_O'],
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{PRONOUN_O}', 'を', '{V_BASE}', 'ことができる。']
+        template: ['PRONOUN_S', 'can', 'V_TRANSITIVE', 'OBJECT_COMPLEMENT'],
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{OBJECT_COMPLEMENT}', 'を', '{V_TRANSITIVE}', 'ことができる。']
     },
-    // S + be + C (名詞) - 彼女は生徒です
+    // S + be + C (名詞) - 彼女は先生です
     S_BE_C_NOUN: {
-        template: ['PRONOUN_S', 'BE_VERB', 'ARTICLE', 'NOUN_S'],
+        template: ['PRONOUN_S', 'BE_VERB', 'NOUN_S'],
         meaningTemplate: ['{PRONOUN_S}', 'は', '{NOUN_S}', 'です。']
     },
     // S + be + C (形容詞) - 私たちは幸せです
@@ -674,7 +701,7 @@ function renderHomeMenu() {
 
 
 // =========================================================
-// 5. 構文テンプレートロジック
+// 5. 構文テンプレートロジック (意味の通る文を生成するように修正)
 // =========================================================
 
 /**
@@ -683,6 +710,7 @@ function renderHomeMenu() {
  * @returns {T}
  */
 function getRandomElement(arr) {
+    if (!arr || arr.length === 0) return null;
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
@@ -693,7 +721,7 @@ function getRandomElement(arr) {
  */
 function generateSentence(templateId) {
     const templateData = SENTENCE_TEMPLATES[templateId];
-    if (!templateData) return { word: "Error", meaning: "エラー" };
+    if (!templateData) return { word: "Error", meaning: "エラー: テンプレートIDが無効です" };
 
     const parts = {};
     const words = [];
@@ -702,20 +730,34 @@ function generateSentence(templateId) {
     const subjectEntry = getRandomElement(LEXICON.PRONOUN_S);
     parts.PRONOUN_S = subjectEntry.word;
     
-    // 2. テンプレートを順に処理
+    // 2. 使用する動詞とカテゴリを特定 (SVO/Modal構文のみ)
+    let verbEntry = null;
+    let objectCategory = null;
+    if (templateData.template.includes('V_TRANSITIVE')) {
+        verbEntry = getRandomElement(LEXICON.V_TRANSITIVE);
+        objectCategory = verbEntry.category;
+        
+        if (!LEXICON.O_CATEGORY[objectCategory]) {
+             return { word: "Error", meaning: `エラー: 目的語カテゴリ ${objectCategory} が見つかりません` };
+        }
+    }
+    
+    // 3. テンプレートを順に処理
     for (const part of templateData.template) {
+        // --- 主語 ---
         if (part === 'PRONOUN_S') {
             words.push(subjectEntry.word);
             continue;
         }
 
-        // 特別な単語や文法チェック
+        // --- Be動詞 ---
         if (part === 'BE_VERB') {
-            // Be動詞の決定
+            // 主語に応じたBe動詞の決定
             const beEntry = LEXICON.BE_VERB.find(e => {
-                if (subjectEntry.word === 'I' && e.subject === 'I') return true;
-                if ((subjectEntry.word === 'You' || subjectEntry.word === 'We' || subjectEntry.word === 'They') && e.subject === 'You/We/They') return true;
-                if ((subjectEntry.word === 'He' || subjectEntry.word === 'She') && e.subject === 'He/She') return true;
+                const sub = subjectEntry.word;
+                if (sub === 'I' && e.subject === 'I') return true;
+                if ((sub === 'You' || sub === 'We' || sub === 'They') && e.subject === 'You/We/They') return true;
+                if ((sub === 'He' || sub === 'She') && e.subject === 'He/She') return true;
                 return false;
             });
             const word = beEntry ? beEntry.word : 'is';
@@ -724,20 +766,22 @@ function generateSentence(templateId) {
             continue;
         }
         
-        if (part === 'V_BASE') {
-            // 現在形の動詞の決定 (S+V+Oテンプレートの場合のみ三人称単数現在形を考慮)
-            let verbEntry = getRandomElement(LEXICON.V_BASE);
+        // --- 一般動詞 (V_TRANSITIVE) ---
+        if (part === 'V_TRANSITIVE') {
             let verbWord = verbEntry.word;
             
-            // S+V+Oテンプレートかつ三人称単数主語の場合 (He, She)
-            if (templateId === 'SV_O_BASIC' && subjectEntry.singular) {
-                 // 簡易的な三人称単数現在形の処理
-                if (verbWord.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(verbWord.slice(-2,-1))) {
-                    verbWord = verbWord.slice(0, -1) + 'ies'; // study -> studies (if 'study' were in V_BASE)
-                } else if (['s', 'sh', 'ch', 'x', 'o'].some(suffix => verbWord.endsWith(suffix))) {
-                    verbWord += 'es'; // go -> goes
-                } else {
-                    verbWord += 's'; // eat -> eats
+            // S+V+Oテンプレートかつ三人称単数主語の場合、動詞に-sを付与
+            if ((templateId === 'SV_O_BASIC' || templateId === 'MODAL_CAN') && subjectEntry.singular) {
+                // 助動詞canの後ろは原形なので-sは不要
+                if (!templateData.template.includes('can')) {
+                     // 簡易的な三人称単数現在形の処理
+                    if (verbWord.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(verbWord.slice(-2,-1))) {
+                        verbWord = verbWord.slice(0, -1) + 'ies'; 
+                    } else if (['s', 'sh', 'ch', 'x', 'o'].some(suffix => verbWord.endsWith(suffix))) {
+                        verbWord += 'es'; 
+                    } else {
+                        verbWord += 's'; 
+                    }
                 }
             }
 
@@ -746,27 +790,44 @@ function generateSentence(templateId) {
             continue;
         }
         
-        // それ以外の品詞 (PRONOUN_O, NOUN_S, ADJ, canなど)
-        if (LEXICON[part]) {
-            const entry = getRandomElement(LEXICON[part]);
-            words.push(entry.word);
-            
-            // 日本語テンプレート用の単語の意味を保存 (冠詞は日本語訳に含めない)
-            if (part !== 'ARTICLE') {
-                parts[part] = entry.meaning;
+        // --- 目的語 (OBJECT_COMPLEMENT) ---
+        if (part === 'OBJECT_COMPLEMENT') {
+            // 動詞のカテゴリに一致する目的語リストから選択
+            const objectEntry = getRandomElement(LEXICON.O_CATEGORY[objectCategory]);
+            if (objectEntry) {
+                words.push(objectEntry.word);
+                parts[part] = objectEntry.meaning;
             } else {
-                parts[part] = ''; // 日本語訳には反映しない
+                 return { word: "Error", meaning: "エラー: 目的語が選択できませんでした" };
             }
-        } else {
-            // 固定の単語 (e.g., 'can')
+            continue;
+        }
+
+        // --- 名詞補語 (NOUN_S) ---
+        if (part === 'NOUN_S') {
+            const entry = getRandomElement(LEXICON.NOUN_S);
+            words.push(entry.word);
+            parts[part] = entry.meaning;
+            continue;
+        }
+
+        // --- 形容詞補語 (ADJ) ---
+        if (part === 'ADJ') {
+            const entry = getRandomElement(LEXICON.ADJ);
+            words.push(entry.word);
+            parts[part] = entry.meaning;
+            continue;
+        }
+
+        // --- 固定の単語 (e.g., 'can') ---
+        if (typeof part === 'string' && !LEXICON[part]) {
             words.push(part);
-            parts[part] = part;
         }
     }
 
-    // 3. 英語の文の組み立て
+    // 4. 英語の文の整形
     let englishSentence = words.join(' ');
-    // 最初の文字を大文字にし、最後にピリオドをつける（既についている場合は除く）
+    // 最初の文字を大文字にし、最後にピリオドをつける
     if (englishSentence.length > 0) {
         englishSentence = englishSentence.charAt(0).toUpperCase() + englishSentence.slice(1);
         if (!englishSentence.endsWith('.') && !englishSentence.endsWith('?') && !englishSentence.endsWith('!')) {
@@ -774,11 +835,10 @@ function generateSentence(templateId) {
         }
     }
     
-    // 4. 日本語訳の組み立て
+    // 5. 日本語訳の組み立て
     let japaneseMeaning = templateData.meaningTemplate.join('');
     // プレースホルダーを実際の日本語訳で置換
     for (const key in parts) {
-        // {}で囲まれたプレースホルダーを置換
         japaneseMeaning = japaneseMeaning.replace(new RegExp(`\\{${key}\\}`, 'g'), parts[key]);
     }
     // 不要な空白、句読点を整形
@@ -808,9 +868,7 @@ function startGame(mode, sessionName, courseName) {
     let wordList = [];
     if (templateData) {
         // === ハイレベルコース (テンプレート生成) ===
-        // ランダム生成された問題を指定された回数分リストに追加
         for (let i = 0; i < templateData.count; i++) {
-            // 同一の問題が連続しないように、直前の問題と異なる問題が生成されるまでループ
             let newSentence;
             let attempt = 0;
             do {
@@ -818,9 +876,15 @@ function startGame(mode, sessionName, courseName) {
                 attempt++;
             } while (attempt < 5 && i > 0 && newSentence.word === wordList[i-1].word);
 
+            // エラーチェック
+            if (newSentence.word.startsWith("Error")) {
+                 console.error(newSentence.meaning);
+                 alert("問題生成中にエラーが発生しました。コンソールを確認してください。");
+                 changeScreen('home');
+                 return;
+            }
             wordList.push(newSentence);
         }
-        // テンプレート生成されたリストをセット
     } else if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
         // === スタンダードコース (固定データ) ===
         wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
@@ -1006,6 +1070,7 @@ elements.typingInput.addEventListener('input', () => {
 
 
     // ハイライト表示の更新
+    // 瞬間英作文モードでは、正しい入力中のみブランクを埋めるように見せる
     if (GAME_STATE.currentMode === 'instant' && !isMistake) {
         elements.wordDisplay.innerHTML = `<p class="instant-mode-text">${highlightedWord}</p>`;
     } else {
@@ -1035,7 +1100,8 @@ elements.typingInput.addEventListener('input', () => {
         
     } else {
         // 入力が正しい状態に戻ったため、ペナルティフラグを解除
-        GAME_STATE.currentWordMistakeFlag = false; 
+        // ここでフラグをリセットすると、すぐに再ペナルティを受ける可能性があるため、完了まで維持
+        // GAME_STATE.currentWordMistakeFlag = false; 
         elements.feedbackMessage.textContent = '';
         
         if (typedText.length === currentWord.length) {
