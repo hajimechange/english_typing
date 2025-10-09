@@ -110,7 +110,9 @@
                 <!-- 英文コースセッション -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション</h3>
-                    <div id="sentence-courses" class="space-y-2"></div>
+                    <div id="sentence-courses" class="space-y-2">
+                        <!-- コース選択メニューが動的に挿入されます -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -273,7 +275,7 @@ const WORD_DATA = {
             { word: "hit", meaning: "打つ" }, { word: "end", meaning: "終わる" }, { word: "save", meaning: "救う" }, { word: "drive", meaning: "運転する" }, { word: "remain", meaning: "残る" }
         ]
     },
-    // === 英文コースセッション ===
+    // === スタンダード英文コースセッション (固定文) ===
     "英文コースセッション": {
         "レベル1": [
             { word: "I am a student.", meaning: "私は生徒です。" },
@@ -389,7 +391,102 @@ const WORD_DATA = {
 };
 
 // =========================================================
-// 2. グローバルな状態管理とDOM要素
+// 2. 構文テンプレートと単語リスト (ハイレベルコース用)
+// =========================================================
+
+// 品詞ごとの単語リスト (Lexicon)
+const LEXICON = {
+    PRONOUN_S: [
+        { word: "I", meaning: "私は", singular: false }, 
+        { word: "You", meaning: "あなたは", singular: false }, 
+        { word: "He", meaning: "彼は", singular: true }, 
+        { word: "She", meaning: "彼女は", singular: true },
+        { word: "We", meaning: "私たちは", singular: false }, 
+        { word: "They", meaning: "彼らは", singular: false }
+    ],
+    PRONOUN_O: [
+        { word: "apple", meaning: "りんご" }, 
+        { word: "dog", meaning: "犬" }, 
+        { word: "book", meaning: "本" }, 
+        { word: "coffee", meaning: "コーヒー" }, 
+        { word: "pen", meaning: "ペン" }
+    ],
+    V_BASE: [
+        { word: "eat", meaning: "食べる" }, 
+        { word: "drink", meaning: "飲む" }, 
+        { word: "buy", meaning: "買う" }, 
+        { word: "read", meaning: "読む" }, 
+        { word: "write", meaning: "書く" },
+        { word: "see", meaning: "見る" }, 
+        { word: "know", meaning: "知る" },
+        { word: "play", meaning: "遊ぶ/する" },
+        { word: "speak", meaning: "話す" }
+    ],
+    NOUN_S: [
+        { word: "student", meaning: "生徒" }, 
+        { word: "teacher", meaning: "先生" }, 
+        { word: "engineer", meaning: "エンジニア" }, 
+        { word: "doctor", meaning: "医者" }
+    ],
+    ADJ: [
+        { word: "happy", meaning: "幸せな" }, 
+        { word: "sad", meaning: "悲しい" }, 
+        { word: "big", meaning: "大きな" }, 
+        { word: "small", meaning: "小さな" }, 
+        { word: "good", meaning: "良い" },
+        { word: "new", meaning: "新しい" }
+    ],
+    BE_VERB: [
+        { word: "am", meaning: "です/いる", subject: "I" },
+        { word: "are", meaning: "です/いる", subject: "You/We/They" },
+        { word: "is", meaning: "です/いる", subject: "He/She" },
+    ],
+    ARTICLE: [
+        { word: "a", meaning: "1つの" }, 
+        { word: "an", meaning: "1つの" }, 
+        { word: "the", meaning: "その" }
+    ],
+};
+
+// 構文テンプレートの定義
+// template: [品詞, 品詞, ...]
+const SENTENCE_TEMPLATES = {
+    // S + V + O (Present Simple) - 私はリンゴを食べる
+    SV_O_BASIC: {
+        template: ['PRONOUN_S', 'V_BASE', 'PRONOUN_O'], 
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{PRONOUN_O}', 'を', '{V_BASE}', '。']
+    },
+    // S + can + V + O - 彼は本を読むことができる
+    MODAL_CAN: {
+        template: ['PRONOUN_S', 'can', 'V_BASE', 'PRONOUN_O'],
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{PRONOUN_O}', 'を', '{V_BASE}', 'ことができる。']
+    },
+    // S + be + C (名詞) - 彼女は生徒です
+    S_BE_C_NOUN: {
+        template: ['PRONOUN_S', 'BE_VERB', 'ARTICLE', 'NOUN_S'],
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{NOUN_S}', 'です。']
+    },
+    // S + be + C (形容詞) - 私たちは幸せです
+    S_BE_C_ADJ: {
+        template: ['PRONOUN_S', 'BE_VERB', 'ADJ'],
+        meaningTemplate: ['{PRONOUN_S}', 'は', '{ADJ}', 'です。']
+    }
+};
+
+// ハイレベルコースの定義 (テンプレートを使用)
+const HIGH_LEVEL_TEMPLATES = {
+    "基本構文S+V+O": { templateId: "SV_O_BASIC", count: 10, meaning: "主語+動詞+目的語の基本文" },
+    "助動詞can構文": { templateId: "MODAL_CAN", count: 10, meaning: "助動詞canを使った文" },
+    "S+be+名詞": { templateId: "S_BE_C_NOUN", count: 10, meaning: "be動詞+名詞の文" },
+    "S+be+形容詞": { templateId: "S_BE_C_ADJ", count: 10, meaning: "be動詞+形容詞の文" }
+};
+
+// スタンダードコースの定義 (固定の英文を使用) - 既存の英文コースを再利用
+const STANDARD_SENTENCE_COURSES = WORD_DATA["英文コースセッション"];
+
+
+// =========================================================
+// 3. グローバルな状態管理とDOM要素
 // =========================================================
 
 const GAME_STATE = {
@@ -448,7 +545,7 @@ const elements = {
 
 
 // =========================================================
-// 3. UI画面の切り替え
+// 4. UI画面の切り替え
 // =========================================================
 
 /**
@@ -512,6 +609,18 @@ function hideCourseSelection() {
     elements.courseSelectionContainer.classList.add('hidden');
 }
 
+/**
+ * コース選択ボタンを作成するヘルパー関数
+ */
+function createCourseButton(session, courseName, buttonText) {
+    const button = document.createElement('button');
+    button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
+    button.textContent = buttonText;
+    button.onclick = () => {
+        startGame(GAME_STATE.currentMode, session, courseName);
+    };
+    return button;
+}
 
 /**
  * ホームメニューのコース選択ボタンを生成する
@@ -519,36 +628,171 @@ function hideCourseSelection() {
 function renderHomeMenu() {
     elements.nounCourses.innerHTML = '';
     elements.verbCourses.innerHTML = '';
-    elements.sentenceCourses.innerHTML = '';
+    
+    // 英文コースセッションをスタンダードとハイレベルに分割して表示
+    elements.sentenceCourses.innerHTML = `
+        <h4 class="text-base font-bold text-indigo-700 mt-2 mb-2 border-b">スタンダードコース (固定文)</h4>
+        <div id="standard-courses" class="space-y-2"></div>
+        <h4 class="text-base font-bold text-indigo-700 mt-4 mb-2 border-b">ハイレベルコース (構文テンプレート)</h4>
+        <div id="highlevel-courses" class="space-y-2"></div>
+    `;
+    const $standardCourses = $('standard-courses');
+    const $highlevelCourses = $('highlevel-courses');
+
 
     for (const session in WORD_DATA) {
         let targetElement;
+        // 普通名詞・一般動詞セッションのレンダリング
         if (session === "普通名詞セッション") {
             targetElement = elements.nounCourses;
         } else if (session === "一般動詞セッション") {
             targetElement = elements.verbCourses;
-        } else if (session === "英文コースセッション") {
-            targetElement = elements.sentenceCourses;
         } else {
+            // 英文コースセッションは個別に処理するためスキップ
             continue;
         }
 
         for (const courseName in WORD_DATA[session]) {
-            const button = document.createElement('button');
-            button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
-            button.textContent = courseName;
-            // モードとコースを渡してstartGameを呼び出し
-            button.onclick = () => {
-                startGame(GAME_STATE.currentMode, session, courseName);
-            };
+            const button = createCourseButton(session, courseName, courseName);
             targetElement.appendChild(button);
         }
+    }
+    
+    // スタンダード英文コース (固定文)
+    for (const courseName in STANDARD_SENTENCE_COURSES) {
+        const button = createCourseButton("英文コースセッション", courseName, courseName);
+        $standardCourses.appendChild(button);
+    }
+    
+    // ハイレベル英文コース (テンプレート生成)
+    for (const courseName in HIGH_LEVEL_TEMPLATES) {
+        const count = HIGH_LEVEL_TEMPLATES[courseName].count;
+        const button = createCourseButton("ハイレベル構文", courseName, `${courseName} (${count}問)`);
+        $highlevelCourses.appendChild(button);
     }
 }
 
 
 // =========================================================
-// 4. ゲームロジック
+// 5. 構文テンプレートロジック
+// =========================================================
+
+/**
+ * 配列からランダムな要素を返す
+ * @param {Array<T>} arr 
+ * @returns {T}
+ */
+function getRandomElement(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/**
+ * 構文テンプレートに基づいてランダムな英文を生成する
+ * @param {string} templateId - SENTENCE_TEMPLATESのキー
+ * @returns {{word: string, meaning: string}}
+ */
+function generateSentence(templateId) {
+    const templateData = SENTENCE_TEMPLATES[templateId];
+    if (!templateData) return { word: "Error", meaning: "エラー" };
+
+    const parts = {};
+    const words = [];
+    
+    // 1. 主語を決定し、文法的一致のための情報を保存
+    const subjectEntry = getRandomElement(LEXICON.PRONOUN_S);
+    parts.PRONOUN_S = subjectEntry.word;
+    
+    // 2. テンプレートを順に処理
+    for (const part of templateData.template) {
+        if (part === 'PRONOUN_S') {
+            words.push(subjectEntry.word);
+            continue;
+        }
+
+        // 特別な単語や文法チェック
+        if (part === 'BE_VERB') {
+            // Be動詞の決定
+            const beEntry = LEXICON.BE_VERB.find(e => {
+                if (subjectEntry.word === 'I' && e.subject === 'I') return true;
+                if ((subjectEntry.word === 'You' || subjectEntry.word === 'We' || subjectEntry.word === 'They') && e.subject === 'You/We/They') return true;
+                if ((subjectEntry.word === 'He' || subjectEntry.word === 'She') && e.subject === 'He/She') return true;
+                return false;
+            });
+            const word = beEntry ? beEntry.word : 'is';
+            words.push(word);
+            parts[part] = beEntry.meaning;
+            continue;
+        }
+        
+        if (part === 'V_BASE') {
+            // 現在形の動詞の決定 (S+V+Oテンプレートの場合のみ三人称単数現在形を考慮)
+            let verbEntry = getRandomElement(LEXICON.V_BASE);
+            let verbWord = verbEntry.word;
+            
+            // S+V+Oテンプレートかつ三人称単数主語の場合 (He, She)
+            if (templateId === 'SV_O_BASIC' && subjectEntry.singular) {
+                 // 簡易的な三人称単数現在形の処理
+                if (verbWord.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(verbWord.slice(-2,-1))) {
+                    verbWord = verbWord.slice(0, -1) + 'ies'; // study -> studies (if 'study' were in V_BASE)
+                } else if (['s', 'sh', 'ch', 'x', 'o'].some(suffix => verbWord.endsWith(suffix))) {
+                    verbWord += 'es'; // go -> goes
+                } else {
+                    verbWord += 's'; // eat -> eats
+                }
+            }
+
+            words.push(verbWord);
+            parts[part] = verbEntry.meaning;
+            continue;
+        }
+        
+        // それ以外の品詞 (PRONOUN_O, NOUN_S, ADJ, canなど)
+        if (LEXICON[part]) {
+            const entry = getRandomElement(LEXICON[part]);
+            words.push(entry.word);
+            
+            // 日本語テンプレート用の単語の意味を保存 (冠詞は日本語訳に含めない)
+            if (part !== 'ARTICLE') {
+                parts[part] = entry.meaning;
+            } else {
+                parts[part] = ''; // 日本語訳には反映しない
+            }
+        } else {
+            // 固定の単語 (e.g., 'can')
+            words.push(part);
+            parts[part] = part;
+        }
+    }
+
+    // 3. 英語の文の組み立て
+    let englishSentence = words.join(' ');
+    // 最初の文字を大文字にし、最後にピリオドをつける（既についている場合は除く）
+    if (englishSentence.length > 0) {
+        englishSentence = englishSentence.charAt(0).toUpperCase() + englishSentence.slice(1);
+        if (!englishSentence.endsWith('.') && !englishSentence.endsWith('?') && !englishSentence.endsWith('!')) {
+            englishSentence += '.';
+        }
+    }
+    
+    // 4. 日本語訳の組み立て
+    let japaneseMeaning = templateData.meaningTemplate.join('');
+    // プレースホルダーを実際の日本語訳で置換
+    for (const key in parts) {
+        // {}で囲まれたプレースホルダーを置換
+        japaneseMeaning = japaneseMeaning.replace(new RegExp(`\\{${key}\\}`, 'g'), parts[key]);
+    }
+    // 不要な空白、句読点を整形
+    japaneseMeaning = japaneseMeaning.replace(/\s+/g, '').replace(/、。/g, '。').replace(/。。/g, '。');
+
+    return {
+        word: englishSentence,
+        meaning: japaneseMeaning.trim()
+    };
+}
+
+
+// =========================================================
+// 6. ゲームロジック
 // =========================================================
 
 /**
@@ -558,13 +802,38 @@ function renderHomeMenu() {
  * @param {string} courseName 
  */
 function startGame(mode, sessionName, courseName) {
-    if (!mode || !WORD_DATA[sessionName] || !WORD_DATA[sessionName][courseName]) return;
+    // テンプレートコースの判定
+    const templateData = HIGH_LEVEL_TEMPLATES[courseName];
+    
+    let wordList = [];
+    if (templateData) {
+        // === ハイレベルコース (テンプレート生成) ===
+        // ランダム生成された問題を指定された回数分リストに追加
+        for (let i = 0; i < templateData.count; i++) {
+            // 同一の問題が連続しないように、直前の問題と異なる問題が生成されるまでループ
+            let newSentence;
+            let attempt = 0;
+            do {
+                newSentence = generateSentence(templateData.templateId);
+                attempt++;
+            } while (attempt < 5 && i > 0 && newSentence.word === wordList[i-1].word);
+
+            wordList.push(newSentence);
+        }
+        // テンプレート生成されたリストをセット
+    } else if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
+        // === スタンダードコース (固定データ) ===
+        wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
+    } else {
+        console.error("Invalid course selection:", sessionName, courseName);
+        return;
+    }
 
     // ゲーム状態のリセット
     GAME_STATE.currentMode = mode;
     GAME_STATE.selectedSession = sessionName;
     GAME_STATE.selectedCourse = courseName;
-    GAME_STATE.wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
+    GAME_STATE.wordList = wordList;
     GAME_STATE.currentWordIndex = 0;
     GAME_STATE.score = 0;
     GAME_STATE.mistakeCount = 0;
@@ -579,7 +848,9 @@ function startGame(mode, sessionName, courseName) {
 
     // UIの初期設定
     elements.currentModeDisplay.textContent = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
-    elements.courseDisplay.textContent = `${sessionName} / ${courseName}`;
+    // コース表示名を調整
+    const courseDisplayName = sessionName === "ハイレベル構文" ? `ハイレベル / ${courseName}` : `${sessionName} / ${courseName}`;
+    elements.courseDisplay.textContent = courseDisplayName;
     elements.timer.textContent = GAME_STATE.timer;
     elements.score.textContent = GAME_STATE.score;
     elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
@@ -812,7 +1083,7 @@ function displayResult() {
 
 
 // =========================================================
-// 5. 初期化
+// 7. 初期化
 // =========================================================
 
 // ページロード時にホーム画面を表示
