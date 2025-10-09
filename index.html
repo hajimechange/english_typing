@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英単語＆英文タイピングゲーム</title>
+    <title>English Typing Game</title>
     <!-- Tailwind CSS CDNを読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,7 +14,7 @@
             background-color: #f0f4f8;
         }
         .container {
-            max-width: 1200px; /* 3セッションに対応するため幅を拡大 */
+            max-width: 1200px;
             min-height: 80vh;
             margin: 40px auto;
             background: #ffffff;
@@ -25,17 +25,18 @@
         /* 単語表示エリアのカスタムスタイル */
         #word-display {
             font-family: 'Consolas', 'Courier New', monospace;
-            min-height: 2.5em; /* 文字の点滅を避ける */
+            min-height: 2.5em; 
             user-select: none;
             display: flex; 
             align-items: center;
             justify-content: center;
-            /* 英文対応のため、フォントサイズを調整 */
             font-size: 2.5rem; 
             line-height: 1.2;
             padding: 24px;
             text-align: center;
-            word-break: break-word; /* 長い英文に対応 */
+            word-break: break-word; 
+            /* 瞬間英作文モード用のブランク文字のスタイル */
+            letter-spacing: 0.1em;
         }
         @media (max-width: 768px) {
             #word-display {
@@ -51,45 +52,65 @@
             border-radius: 4px;
             padding: 0 2px;
         }
+        /* 瞬間英作文モードで未入力の文字に使うスタイル */
+        .blank-char {
+            color: #ccc;
+        }
+        .instant-mode-text {
+            /* 瞬間英作文モードのテキストに特に強いフォントを適用 */
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4b5563; /* Gray-600 */
+        }
     </style>
 </head>
 <body>
 
 <div id="app" class="container flex flex-col items-center">
     <h1 class="text-4xl font-extrabold text-indigo-600 mb-8">
-        英単語＆英文タイピングゲーム
+        English Typing Game
     </h1>
 
     <!-- 画面切り替えエリア -->
     <div id="screen-container" class="w-full">
-        <!-- ホーム画面 -->
-        <div id="home-screen" class="space-y-8">
-            <h2 class="text-2xl font-semibold text-gray-700">セッションとコースを選んでください</h2>
+        <!-- ホーム画面 (モード選択 + コース選択) -->
+        <div id="home-screen" class="space-y-10">
+            <h2 class="text-3xl font-bold text-gray-800 border-b pb-3">モード選択</h2>
+            
+            <!-- モード選択ボタン -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 通常モード -->
+                <button onclick="selectMode('normal')" id="btn-normal" class="flex flex-col items-center justify-center p-8 bg-indigo-500 text-white rounded-xl shadow-xl hover:bg-indigo-600 transition-all transform hover:scale-105">
+                    <p class="text-3xl font-extrabold mb-2">通常モード</p>
+                    <p class="text-lg font-medium text-indigo-100">スペルを見ながら正確に打つ練習</p>
+                </button>
+                <!-- 瞬間英作文モード -->
+                <button onclick="selectMode('instant')" id="btn-instant" class="flex flex-col items-center justify-center p-8 bg-purple-500 text-white rounded-xl shadow-xl hover:bg-purple-600 transition-all transform hover:scale-105">
+                    <p class="text-3xl font-extrabold mb-2">瞬間英作文モード</p>
+                    <p class="text-lg font-medium text-purple-100">日本語を見てスペルを思い出す練習 (高難度)</p>
+                </button>
+            </div>
+            
+            <h2 id="course-selection-title" class="text-2xl font-semibold text-gray-700 mt-10 hidden">コースを選んでください (<span id="selected-mode-display"></span>)</h2>
 
-            <!-- セッション選択 (3列グリッドに変更) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- コース選択 (3列グリッド) -->
+            <div id="course-selection-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
                 <!-- 普通名詞セッション -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">普通名詞セッション</h3>
-                    <div id="noun-courses" class="space-y-2">
-                        <!-- コースボタンがここに生成されます -->
-                    </div>
+                    <div id="noun-courses" class="space-y-2"></div>
                 </div>
 
                 <!-- 一般動詞セッション -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">一般動詞セッション</h3>
-                    <div id="verb-courses" class="space-y-2">
-                        <!-- コースボタンがここに生成されます -->
-                    </div>
+                    <div id="verb-courses" class="space-y-2"></div>
                 </div>
                 
-                <!-- 英文コースセッション (新規追加) -->
+                <!-- 英文コースセッション -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション</h3>
-                    <div id="sentence-courses" class="space-y-2">
-                        <!-- コースボタンがここに生成されます -->
-                    </div>
+                    <div id="sentence-courses" class="space-y-2"></div>
                 </div>
             </div>
         </div>
@@ -98,7 +119,7 @@
         <div id="game-screen" class="hidden space-y-6">
             <div class="flex justify-between items-center w-full mb-4 p-4 bg-indigo-50 rounded-lg shadow-inner">
                 <p class="text-lg font-bold text-indigo-700">
-                    コース: <span id="current-course-display"></span>
+                    モード: <span id="current-mode-display"></span> | コース: <span id="current-course-display"></span>
                 </p>
                 <div class="text-2xl font-extrabold text-red-600 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mr-2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -153,7 +174,7 @@
             <p class="text-xl text-gray-600">
                 <span id="completed-words">0</span> / <span id="total-words">0</span> 問題を完了しました。
             </p>
-            <button onclick="startGame(GAME_STATE.selectedSession, GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+            <button onclick="startGame(GAME_STATE.currentMode, GAME_STATE.selectedSession, GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
                 このコースで再チャレンジ！
             </button>
             <button onclick="changeScreen('home')" class="mt-4 px-6 py-3 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors block mx-auto">
@@ -252,7 +273,7 @@ const WORD_DATA = {
             { word: "hit", meaning: "打つ" }, { word: "end", meaning: "終わる" }, { word: "save", meaning: "救う" }, { word: "drive", meaning: "運転する" }, { word: "remain", meaning: "残る" }
         ]
     },
-    // === 英文コースセッション (新規追加) ===
+    // === 英文コースセッション ===
     "英文コースセッション": {
         "レベル1": [
             { word: "I am a student.", meaning: "私は生徒です。" },
@@ -362,7 +383,7 @@ const WORD_DATA = {
             { word: "What a beautiful flower this is!", meaning: "これはなんて美しい花なのでしょう！" },
             { word: "I wish I had more time to play.", meaning: "遊ぶ時間があればいいのになあ。" },
             { word: "If I were you, I would try again.", meaning: "もし私があなたなら、もう一度挑戦するでしょう。" },
-            { word: "Many things we use come from overseas.", meaning: "私たちが使う多くのものは海外から来ています。" }
+            { word: "Many things that we use every day come from overseas.", meaning: "私たちが毎日目にする多くのものは海外から来ています。" }
         ]
     }
 };
@@ -372,6 +393,7 @@ const WORD_DATA = {
 // =========================================================
 
 const GAME_STATE = {
+    currentMode: null, // 'normal' または 'instant'
     selectedSession: null, 
     selectedCourse: null,
     wordList: [],
@@ -382,7 +404,7 @@ const GAME_STATE = {
     timerInterval: null,
     isGameStarted: false,
     isGameOver: false,
-    // ★追加: 1単語内でのペナルティ適用を管理するフラグ
+    // 1単語内でのペナルティ適用を管理するフラグ
     currentWordMistakeFlag: false, 
 };
 
@@ -397,7 +419,13 @@ const elements = {
     game: $('game-screen'),
     result: $('result-screen'),
     
+    // Home elements
+    courseSelectionTitle: $('course-selection-title'),
+    courseSelectionContainer: $('course-selection-container'),
+    selectedModeDisplay: $('selected-mode-display'),
+    
     // Game elements
+    currentModeDisplay: $('current-mode-display'),
     courseDisplay: $('current-course-display'),
     timer: $('timer'),
     score: $('score'),
@@ -415,7 +443,6 @@ const elements = {
 
     nounCourses: $('noun-courses'),
     verbCourses: $('verb-courses'),
-    // ★追加: 英文コースセッションのコンテナ
     sentenceCourses: $('sentence-courses')
 };
 
@@ -435,7 +462,12 @@ function changeScreen(screenId) {
     
     if (screenId === 'home') {
         elements.home.classList.remove('hidden');
-        renderHomeMenu();
+        // モード選択状態に応じてUIを調整
+        if (GAME_STATE.currentMode) {
+            showCourseSelection();
+        } else {
+            hideCourseSelection();
+        }
     } else if (screenId === 'game') {
         elements.game.classList.remove('hidden');
     } else if (screenId === 'result') {
@@ -446,12 +478,48 @@ function changeScreen(screenId) {
 
 
 /**
+ * モードを選択し、コース選択UIを表示する
+ * @param {('normal'|'instant')} mode - 選択されたモード
+ */
+function selectMode(mode) {
+    GAME_STATE.currentMode = mode;
+    const modeName = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
+    
+    elements.selectedModeDisplay.textContent = modeName;
+    elements.currentModeDisplay.textContent = modeName;
+
+    // モード選択ボタンを非アクティブ化/アクティブ化
+    $('btn-normal').classList.remove('bg-indigo-700');
+    $('btn-instant').classList.remove('bg-purple-700');
+    
+    if (mode === 'normal') {
+        $('btn-normal').classList.add('bg-indigo-700');
+    } else {
+        $('btn-instant').classList.add('bg-purple-700');
+    }
+
+    showCourseSelection();
+}
+
+function showCourseSelection() {
+    elements.courseSelectionTitle.classList.remove('hidden');
+    elements.courseSelectionContainer.classList.remove('hidden');
+    renderHomeMenu();
+}
+
+function hideCourseSelection() {
+    elements.courseSelectionTitle.classList.add('hidden');
+    elements.courseSelectionContainer.classList.add('hidden');
+}
+
+
+/**
  * ホームメニューのコース選択ボタンを生成する
  */
 function renderHomeMenu() {
     elements.nounCourses.innerHTML = '';
     elements.verbCourses.innerHTML = '';
-    elements.sentenceCourses.innerHTML = ''; // ★追加
+    elements.sentenceCourses.innerHTML = '';
 
     for (const session in WORD_DATA) {
         let targetElement;
@@ -459,7 +527,7 @@ function renderHomeMenu() {
             targetElement = elements.nounCourses;
         } else if (session === "一般動詞セッション") {
             targetElement = elements.verbCourses;
-        } else if (session === "英文コースセッション") { // ★追加
+        } else if (session === "英文コースセッション") {
             targetElement = elements.sentenceCourses;
         } else {
             continue;
@@ -469,9 +537,9 @@ function renderHomeMenu() {
             const button = document.createElement('button');
             button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
             button.textContent = courseName;
-            // コース名とセッション名を渡してstartGameを呼び出し
+            // モードとコースを渡してstartGameを呼び出し
             button.onclick = () => {
-                startGame(session, courseName);
+                startGame(GAME_STATE.currentMode, session, courseName);
             };
             targetElement.appendChild(button);
         }
@@ -485,13 +553,15 @@ function renderHomeMenu() {
 
 /**
  * コースを選択し、ゲーム状態を初期化してゲームを開始する
+ * @param {string} mode - 'normal' or 'instant'
  * @param {string} sessionName 
  * @param {string} courseName 
  */
-function startGame(sessionName, courseName) {
-    if (!WORD_DATA[sessionName] || !WORD_DATA[sessionName][courseName]) return;
+function startGame(mode, sessionName, courseName) {
+    if (!mode || !WORD_DATA[sessionName] || !WORD_DATA[sessionName][courseName]) return;
 
     // ゲーム状態のリセット
+    GAME_STATE.currentMode = mode;
     GAME_STATE.selectedSession = sessionName;
     GAME_STATE.selectedCourse = courseName;
     GAME_STATE.wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
@@ -501,13 +571,14 @@ function startGame(sessionName, courseName) {
     GAME_STATE.timer = 60;
     GAME_STATE.isGameStarted = false;
     GAME_STATE.isGameOver = false;
-    GAME_STATE.currentWordMistakeFlag = false; // ★リセット
+    GAME_STATE.currentWordMistakeFlag = false; 
 
     clearInterval(GAME_STATE.timerInterval);
     elements.typingInput.value = '';
     elements.typingInput.disabled = false; // 入力を有効化
 
     // UIの初期設定
+    elements.currentModeDisplay.textContent = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
     elements.courseDisplay.textContent = `${sessionName} / ${courseName}`;
     elements.timer.textContent = GAME_STATE.timer;
     elements.score.textContent = GAME_STATE.score;
@@ -529,7 +600,7 @@ function startGame(sessionName, courseName) {
  */
 function startOnFirstKeydown(event) {
     if (!GAME_STATE.isGameStarted && !GAME_STATE.isGameOver) {
-        // アルファベットキーかスペースキー、記号などが押されたら開始 (英文対応のため緩和)
+        // アルファベットキーかスペースキー、記号などが押されたら開始
         if (event.key.length === 1 && event.key.match(/^[a-zA-Z\s,.'";:-]$/)) {
             GAME_STATE.isGameStarted = true;
             elements.typingInput.onkeydown = null; // イベントを解除
@@ -566,7 +637,7 @@ function displayCurrentWord() {
 
     const currentWordData = GAME_STATE.wordList[GAME_STATE.currentWordIndex];
     
-    // ★追加: 新しい単語/文が始まったらペナルティフラグをリセット
+    // 新しい単語/文が始まったらペナルティフラグをリセット
     GAME_STATE.currentWordMistakeFlag = false; 
 
     // UIをリセット
@@ -576,8 +647,24 @@ function displayCurrentWord() {
     elements.wordProgress.textContent = `${GAME_STATE.currentWordIndex} / ${GAME_STATE.wordList.length}`;
     elements.feedbackMessage.textContent = '';
     
-    // 単語の表示を初期化 (最初の文字をハイライト)
-    elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
+    // モードに応じて単語の表示を初期化
+    if (GAME_STATE.currentMode === 'normal') {
+        // 通常モード: 最初の文字をハイライトして、残りの文字を表示
+        elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
+    } else {
+        // 瞬間英作文モード: 全てをブランクで表示 (最初の文字をハイライト)
+        let blanks = '';
+        for (let i = 0; i < currentWordData.word.length; i++) {
+            if (i === 0) {
+                blanks += `<span class="current-char">_</span>`;
+            } else if (currentWordData.word[i] === ' ') {
+                blanks += `<span class="blank-char">&nbsp;</span>`; // スペースはそのまま
+            } else {
+                blanks += `<span class="blank-char">_</span>`;
+            }
+        }
+        elements.wordDisplay.innerHTML = `<p class="instant-mode-text">${blanks}</p>`;
+    }
 }
 
 
@@ -599,35 +686,66 @@ elements.typingInput.addEventListener('input', () => {
         
         if (i < typedText.length) {
             if (char === typedText[i]) {
+                // 正しい文字
                 highlightedWord += `<span class="correct">${char}</span>`;
             } else {
-                highlightedWord += `<span class="incorrect">${char}</span>`;
+                // 間違い検出
+                if (GAME_STATE.currentMode === 'normal') {
+                    // 通常モード: 間違った文字を赤くハイライト
+                    highlightedWord += `<span class="incorrect">${char}</span>`;
+                } else {
+                    // 瞬間英作文モード: 間違った文字を赤くハイライト（フィードバックのため）
+                    highlightedWord += `<span class="incorrect">${char}</span>`;
+                }
                 isMistake = true;
-                // ミスを検出したら、その後の文字は未入力として扱うため、ループを抜ける
-                break; 
+                break; // 最初の間違いでループを中断
             }
         } else if (i === typedText.length) {
-            // 次に入力すべき文字をハイライト
-            highlightedWord += `<span class="current-char">${char}</span>`;
+            // 次に入力すべき文字 (現在カーソルがある位置)
+            if (GAME_STATE.currentMode === 'normal') {
+                highlightedWord += `<span class="current-char">${char}</span>`;
+            } else {
+                // 瞬間英作文モード: ブランク（_）で表示
+                highlightedWord += `<span class="current-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
+            }
         } else {
             // 未入力の文字
-            highlightedWord += char;
+            if (GAME_STATE.currentMode === 'normal') {
+                highlightedWord += char;
+            } else {
+                 // 瞬間英作文モード: ブランク（_）で表示
+                highlightedWord += `<span class="blank-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
+            }
         }
     }
     
-    // ミスタイプにより途中でbreakした場合、残りの文字を未入力として追加
+    // 間違いが検出された場合、未入力部分の表示を調整
     if (isMistake && typedText.length < currentWord.length) {
-        highlightedWord += currentWord.substring(typedText.length);
+        let remaining = currentWord.substring(typedText.length + 1); // 間違えた文字の次から
+        
+        for (let i = 0; i < remaining.length; i++) {
+            let char = remaining[i];
+            if (GAME_STATE.currentMode === 'normal') {
+                 highlightedWord += char;
+            } else {
+                highlightedWord += `<span class="blank-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
+            }
+        }
     }
 
 
     // ハイライト表示の更新
-    elements.wordDisplay.innerHTML = highlightedWord;
+    if (GAME_STATE.currentMode === 'instant' && !isMistake) {
+        elements.wordDisplay.innerHTML = `<p class="instant-mode-text">${highlightedWord}</p>`;
+    } else {
+        elements.wordDisplay.innerHTML = highlightedWord;
+    }
+
 
     if (isMistake) {
         // === ミスタイプ時のペナルティ処理 ===
         
-        // ★変更点: 1単語内でまだペナルティを適用していない場合のみ実行
+        // 1単語内でまだペナルティを適用していない場合のみ実行
         if (!GAME_STATE.currentWordMistakeFlag) {
             GAME_STATE.mistakeCount++;
             elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
@@ -643,8 +761,6 @@ elements.typingInput.addEventListener('input', () => {
                 gameOver();
             }
         }
-        
-        // ★変更点: 入力ボックスの値をクリアしないため、ユーザーは打ち続けられる
         
     } else {
         // 入力が正しい状態に戻ったため、ペナルティフラグを解除
@@ -701,7 +817,8 @@ function displayResult() {
 
 // ページロード時にホーム画面を表示
 window.onload = function() {
-    renderHomeMenu();
+    // 初期状態ではモード選択のみ表示
+    hideCourseSelection();
     changeScreen('home');
 };
 
