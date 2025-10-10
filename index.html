@@ -4,962 +4,772 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Typing Game</title>
-    <!-- Tailwind CSS CDNを読み込み -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* カスタムスタイル */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        /* カスタムフォントとレスポンシブ対応 */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
-        }
-        .container {
-            max-width: 1200px;
-            min-height: 80vh;
-            margin: 40px auto;
-            background: #ffffff;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-        }
-        /* 単語表示エリアのカスタムスタイル */
-        #word-display {
-            font-family: 'Consolas', 'Courier New', monospace;
-            min-height: 2.5em; 
-            user-select: none;
-            display: flex; 
-            align-items: center;
+            background-color: #f7f9fb;
+            display: flex;
             justify-content: center;
-            font-size: 2.5rem; 
-            line-height: 1.2;
-            padding: 24px;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        /* 入力エリアのカスタムスタイル */
+        #typing-input {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            letter-spacing: 0.025em;
+            padding: 1rem 1.25rem;
+            border: 2px solid #ccc;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            outline: none;
+            caret-color: #3b82f6;
+            font-family: monospace; /* タイピングに適したフォント */
+        }
+        #typing-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        /* 単語/英文表示エリア */
+        #word-display, #word-meaning {
+            min-height: 50px;
+            padding: 1rem 0;
             text-align: center;
-            word-break: break-word; 
-            /* 瞬間英作文モード用のブランク文字のスタイル */
-            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
         }
-        @media (max-width: 768px) {
-            #word-display {
-                font-size: 1.5rem;
-                padding: 16px;
-            }
+        #word-meaning {
+            /* 日本語を大きく表示 */
+            font-size: 2.25rem; /* text-4xl */
+            line-height: 2.5rem;
+            font-weight: 800; /* font-extrabold */
+            color: #1f2937; /* Gray-800 */
         }
-
-        .correct { color: #10b981; } /* エメラルドグリーン */
-        .incorrect { color: #ef4444; } /* 赤色 */
-        .current-char { 
-            background-color: #fef08a; /* 黄色のハイライト */
-            border-radius: 4px;
-            padding: 0 2px;
-        }
-        /* 瞬間英作文モードで未入力の文字に使うスタイル */
-        .blank-char {
-            color: #ccc;
-        }
-        .instant-mode-text {
-            /* 瞬間英作文モードのテキストに特に強いフォントを適用 */
-            font-size: 1.2rem;
-            font-weight: 700;
+        #word-display {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 500;
             color: #4b5563; /* Gray-600 */
+            letter-spacing: 0.05em;
+        }
+        /* タイピングのフィードバック */
+        .correct { color: #10b981; } /* エメラルドグリーン */
+        .incorrect { color: #dc2626; } /* 赤 */
+        .current { 
+            border-bottom: 3px solid #f97316; /* オレンジの下線 */
+            font-weight: 700;
+            color: #1f2937;
+        }
+        /* 瞬間英作文モードの非表示 */
+        .hidden-spell {
+            color: transparent;
+        }
+        .instant-correct {
+             color: #10b981; /* 瞬間英作文モードで正しく打たれた文字 */
+             text-shadow: none;
+        }
+        .instant-current {
+            border-bottom: 3px solid #f97316;
+            color: #1f2937;
         }
     </style>
 </head>
 <body>
 
-<div id="app" class="container flex flex-col items-center">
-    <h1 class="text-4xl font-extrabold text-indigo-600 mb-8">
-        English Typing Game
-    </h1>
+<div id="game-container" class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 md:p-10 border border-gray-100">
 
-    <!-- 画面切り替えエリア -->
-    <div id="screen-container" class="w-full">
-        <!-- ホーム画面 (モード選択 + コース選択) -->
-        <div id="home-screen" class="space-y-10">
-            <h2 class="text-3xl font-bold text-gray-800 border-b pb-3">モード選択</h2>
-            
-            <!-- モード選択ボタン -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- 通常モード -->
-                <button onclick="selectMode('normal')" id="btn-normal" class="flex flex-col items-center justify-center p-8 bg-indigo-500 text-white rounded-xl shadow-xl hover:bg-indigo-600 transition-all transform hover:scale-105">
-                    <p class="text-3xl font-extrabold mb-2">通常モード</p>
-                    <p class="text-lg font-medium text-indigo-100">スペルを見ながら正確に打つ練習</p>
-                </button>
-                <!-- 瞬間英作文モード -->
-                <button onclick="selectMode('instant')" id="btn-instant" class="flex flex-col items-center justify-center p-8 bg-purple-500 text-white rounded-xl shadow-xl hover:bg-purple-600 transition-all transform hover:scale-105">
-                    <p class="text-3xl font-extrabold mb-2">瞬間英作文モード</p>
-                    <p class="text-lg font-medium text-purple-100">日本語を見てスペルを思い出す練習 (高難度)</p>
-                </button>
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">English Typing Game</h1>
+
+    <!-- 1. モード選択画面 -->
+    <div id="mode-selection" class="text-center">
+        <h2 class="text-2xl font-semibold mb-6 text-indigo-600">モードを選択してください</h2>
+        <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-8">
+            <button onclick="selectMode('normal')" class="p-6 bg-blue-100 border-2 border-blue-500 text-blue-800 font-bold rounded-xl shadow-lg hover:bg-blue-200 transition duration-150 transform hover:scale-105">
+                通常モード (スペル表示)
+            </button>
+            <button onclick="selectMode('instant')" class="p-6 bg-purple-100 border-2 border-purple-500 text-purple-800 font-bold rounded-xl shadow-lg hover:bg-purple-200 transition duration-150 transform hover:scale-105">
+                瞬間英作文モード (スペル非表示)
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. ホームメニュー (コース選択) -->
+    <div id="home-menu" class="hidden text-center">
+        <h2 id="mode-title" class="text-2xl font-semibold mb-6 text-indigo-600"></h2>
+        <div id="session-buttons" class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <!-- セッションボタンがJSによって挿入されます -->
+        </div>
+    </div>
+
+    <!-- 3. コース選択メニュー -->
+    <div id="course-menu" class="hidden text-center">
+        <h2 id="session-title" class="text-2xl font-semibold mb-6 text-indigo-600"></h2>
+        <div id="course-buttons" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <!-- コースボタンがJSによって挿入されます -->
+        </div>
+        <button onclick="showHomeMenu()" class="mt-8 px-6 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition">
+            セッション選択に戻る
+        </button>
+    </div>
+
+    <!-- 4. ゲームプレイエリア -->
+    <div id="game-play" class="hidden">
+        <div class="flex justify-between items-center mb-6 p-4 bg-indigo-50 rounded-lg shadow-inner">
+            <div class="text-center">
+                <div class="text-xs text-indigo-600 font-semibold uppercase">残り時間</div>
+                <div id="timer" class="text-2xl md:text-3xl font-extrabold text-indigo-800">60</div>
             </div>
-            
-            <h2 id="course-selection-title" class="text-2xl font-semibold text-gray-700 mt-10 hidden">コースを選んでください (<span id="selected-mode-display"></span>)</h2>
-
-            <!-- コース選択 (3列グリッド) -->
-            <div id="course-selection-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
-                <!-- 普通名詞セッション -->
-                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">普通名詞セッション</h3>
-                    <div id="noun-courses" class="space-y-2"></div>
-                </div>
-
-                <!-- 一般動詞セッション -->
-                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">一般動詞セッション</h3>
-                    <div id="verb-courses" class="space-y-2"></div>
-                </div>
-                
-                <!-- 英文コースセッション (CSVデータに基づく固定文) -->
-                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション (意味順ドリル)</h3>
-                    <div id="sentence-courses" class="space-y-2">
-                        <!-- 全9パターンのコース選択メニューが動的に挿入されます -->
-                    </div>
-                </div>
+            <div class="text-center">
+                <div class="text-xs text-indigo-600 font-semibold uppercase">正解単語数</div>
+                <div id="score" class="text-2xl md:text-3xl font-extrabold text-indigo-800">0</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-indigo-600 font-semibold uppercase">コース</div>
+                <div id="current-course" class="text-base font-semibold text-gray-600">--</div>
             </div>
         </div>
 
-        <!-- ゲーム画面 -->
-        <div id="game-screen" class="hidden space-y-6">
-            <div class="flex justify-between items-center w-full mb-4 p-4 bg-indigo-50 rounded-lg shadow-inner">
-                <p class="text-lg font-bold text-indigo-700">
-                    モード: <span id="current-mode-display"></span> | コース: <span id="current-course-display"></span>
-                </p>
-                <div class="text-2xl font-extrabold text-red-600 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mr-2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    残り時間: <span id="timer" class="ml-1">60</span>秒
-                </div>
-            </div>
-            
-            <!-- スコア・情報エリア -->
-            <div class="flex justify-around text-center mb-6">
-                <div class="p-3 bg-green-100 rounded-lg shadow-md">
-                    <p class="text-sm text-green-700">スコア</p>
-                    <p id="score" class="text-3xl font-bold text-green-600">0</p>
-                </div>
-                <div class="p-3 bg-red-100 rounded-lg shadow-md">
-                    <p class="text-sm text-red-700">ミスタイプ</p>
-                    <p id="mistake-count" class="text-3xl font-bold text-red-600">0</p>
-                </div>
-                <div class="p-3 bg-yellow-100 rounded-lg shadow-md">
-                    <p class="text-sm text-yellow-700">問題</p>
-                    <p id="word-progress" class="text-3xl font-bold text-yellow-600">0/0</p>
-                </div>
-            </div>
+        <!-- タイピング表示エリア -->
+        <div id="word-meaning" class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-gray-800">
+            <!-- 日本語の意味が表示される -->
+        </div>
+        
+        <div id="word-display" class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg text-gray-700 select-none leading-relaxed">
+            <!-- 英単語/英文が表示される -->
+            <span class="text-gray-400">「スタート」ボタンを押して開始してください。</span>
+        </div>
 
-            <!-- 単語とUIエリア -->
-            <div class="flex flex-col items-center space-y-6 w-full"> 
-                
-                <!-- 1. 英単語/英文表示エリア (最上部) -->
-                <div id="word-display" class="font-extrabold tracking-wider p-6 bg-gray-50 rounded-xl w-full text-center shadow-inner min-h-[3.5em]">
-                    Loading...
-                </div>
-                
-                <!-- 2. 日本語の意味 (大きく表示) -->
-                <p id="word-meaning" class="text-4xl font-extrabold text-gray-800 mb-4 p-2">日本語の意味</p>
-                
-                <!-- 3. 入力ボックス -->
-                <input type="text" id="typing-input" placeholder="タイプを開始してください" class="w-full md:w-3/4 p-4 text-2xl text-center border-4 border-indigo-400 rounded-xl focus:border-indigo-600 outline-none transition-all duration-300" autofocus disabled>
-            </div>
-            
-            <p id="feedback-message" class="text-center text-lg h-6"></p>
+        <!-- 入力エリア -->
+        <input 
+            type="text" 
+            id="typing-input" 
+            placeholder="ここに英単語/英文を入力します..." 
+            autocomplete="off" 
+            autocapitalize="off"
+            class="w-full rounded-lg text-gray-700 mb-6 mt-4"
+            disabled
+        />
 
-            <button onclick="changeScreen('home')" class="mt-4 px-6 py-2 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors">
+        <!-- コントロールボタン -->
+        <div class="flex justify-center space-x-4">
+            <button id="next-button" class="px-6 py-2 bg-green-600 text-white font-bold rounded-lg shadow-lg hover:bg-green-700 transition duration-150 transform hover:scale-105" disabled>
+                次の問題へ
+            </button>
+            <button id="end-button" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition duration-150 transform hover:scale-105">
+                終了
+            </button>
+        </div>
+    </div>
+
+    <!-- ゲーム終了メッセージモーダル（カスタム） -->
+    <div id="end-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden justify-center items-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform scale-100 transition-all duration-300 ease-out">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-indigo-600 mb-4">結果発表！</h2>
+            <p class="text-lg text-gray-700 mb-2">タイプ数: <span id="final-total-typed" class="font-bold">0</span></p>
+            <p class="text-lg text-gray-700 mb-6">正解単語数:</p>
+            <p id="final-score" class="text-6xl font-black text-blue-800 mb-8">0</p>
+            <button onclick="showHomeMenu()" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
                 ホームに戻る
             </button>
         </div>
-        
-        <!-- 結果画面 -->
-        <div id="result-screen" class="hidden space-y-6 text-center">
-            <h2 class="text-4xl font-extrabold text-green-600">ゲーム終了！</h2>
-            <p class="text-2xl text-gray-700">
-                あなたの最終スコアは: <span id="final-score" class="text-indigo-600 font-extrabold text-5xl">0</span> ポイントです
-            </p>
-            <p class="text-xl text-gray-600">
-                <span id="completed-words">0</span> / <span id="total-words">0</span> 問題を完了しました。
-            </p>
-            <button onclick="startGame(GAME_STATE.currentMode, GAME_STATE.selectedSession, GAME_STATE.selectedCourse)" class="mt-8 px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
-                このコースで再チャレンジ！
-            </button>
-            <button onclick="changeScreen('home')" class="mt-4 px-6 py-3 bg-gray-300 text-gray-800 rounded-full hover:bg-gray-400 transition-colors block mx-auto">
-                コース選択に戻る
+    </div>
+
+    <!-- メッセージモーダル -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden justify-center items-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <p id="modal-message" class="text-lg font-semibold text-gray-800 mb-4"></p>
+            <button onclick="hideMessageModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">
+                OK
             </button>
         </div>
-        
     </div>
 </div>
 
 <script>
-// =========================================================
-// 1. データ定義 (英単語 + 英文 全てのコースを固定文で構成)
-// CSVデータから抽出した全9パターンの英文180問をここに格納します。
-// =========================================================
-
-const WORD_DATA = {
-    // スタンダードな単語セッションはそのまま維持
-    "普通名詞セッション": {
-        "動物": [
-            { word: "dog", meaning: "犬" }, { word: "cat", meaning: "猫" }, { word: "bird", meaning: "鳥" }, { word: "fish", meaning: "魚" }, { word: "horse", meaning: "馬" },
-            { word: "lion", meaning: "ライオン" }, { word: "tiger", meaning: "トラ" }, { word: "bear", meaning: "熊" }, { word: "monkey", meaning: "猿" }, { word: "rabbit", meaning: "ウサギ" },
-            { word: "mouse", meaning: "ネズミ" }, { word: "sheep", meaning: "羊" }, { word: "goat", meaning: "ヤギ" }, { word: "pig", meaning: "豚" }, { word: "cow", meaning: "牛" },
-            { word: "snake", meaning: "蛇" }, { word: "spider", meaning: "クモ" }, { word: "whale", meaning: "クジラ" }, { word: "dolphin", meaning: "イルカ" }, { word: "penguin", meaning: "ペンギン" }
-        ],
-        "食べ物": [
-            { word: "apple", meaning: "りんご" }, { word: "banana", meaning: "バナナ" }, { word: "orange", meaning: "オレンジ" }, { word: "grape", meaning: "ぶどう" }, { word: "rice", meaning: "ご飯" },
-            { word: "bread", meaning: "パン" }, { word: "meat", meaning: "肉" }, { word: "egg", meaning: "卵" }, { word: "cheese", meaning: "チーズ" }, { word: "milk", meaning: "牛乳" },
-            { word: "pizza", meaning: "ピザ" }, { word: "sushi", meaning: "寿司" }, { word: "salad", meaning: "サラダ" }, { word: "soup", meaning: "スープ" }, { word: "curry", meaning: "カレー" },
-            { word: "water", meaning: "水" }, { word: "juice", meaning: "ジュース" }, { word: "coffee", meaning: "コーヒー" }, { word: "sugar", meaning: "砂糖" }, { word: "salt", meaning: "塩" }
-        ],
-        "家具": [
-            { word: "chair", meaning: "椅子" }, { word: "table", meaning: "テーブル" }, { word: "bed", meaning: "ベッド" }, { word: "sofa", meaning: "ソファ" }, { word: "desk", meaning: "机" },
-            { word: "shelf", meaning: "棚" }, { word: "lamp", meaning: "ランプ" }, { word: "mirror", meaning: "鏡" }, { word: "clock", meaning: "時計" }, { word: "drawer", meaning: "引き出し" },
-            { word: "rug", meaning: "ラグ" }, { word: "door", meaning: "ドア" }, { word: "window", meaning: "窓" }, { word: "curtain", meaning: "カーテン" }, { word: "carpet", meaning: "カーペット" },
-            { word: "heater", meaning: "暖房" }, { word: "fan", meaning: "扇風機" }, { word: "picture", meaning: "絵" }, { word: "vases", meaning: "花瓶" }, { word: "cabinet", meaning: "戸棚" }
-        ],
-        "筆記用具": [
-            { word: "pen", meaning: "ペン" }, { word: "pencil", meaning: "鉛筆" }, { word: "eraser", meaning: "消しゴム" }, { word: "notebook", meaning: "ノート" }, { word: "ruler", meaning: "定規" },
-            { word: "book", meaning: "本" }, { word: "paper", meaning: "紙" }, { word: "stapler", meaning: "ホッチキス" }, { word: "scissors", meaning: "ハサミ" }, { word: "glue", meaning: "のり" },
-            { word: "folder", meaning: "ファイル" }, { word: "marker", meaning: "マーカー" }, { word: "crayon", meaning: "クレヨン" }, { word: "ink", meaning: "インク" }, { word: "clipboard", meaning: "クリップボード" },
-            { word: "tape", meaning: "テープ" }, { word: "chalk", meaning: "チョーク" }, { word: "compass", meaning: "コンパス" }, { word: "binder", meaning: "バインダー" }, { word: "highlighter", meaning: "蛍光ペン" }
-        ],
-        "色": [
-            { word: "red", meaning: "赤" }, { word: "blue", meaning: "青" }, { word: "green", meaning: "緑" }, { word: "yellow", meaning: "黄" }, { word: "black", meaning: "黒" },
-            { word: "white", meaning: "白" }, { word: "pink", meaning: "ピンク" }, { word: "brown", meaning: "茶色" }, { word: "gray", meaning: "灰色" }, { word: "purple", meaning: "紫" },
-            { word: "orange", meaning: "オレンジ" }, { word: "gold", meaning: "金色" }, { word: "silver", meaning: "銀色" }, { word: "navy", meaning: "紺色" }, { word: "beige", meaning: "ベージュ" },
-            { word: "sky", meaning: "空色" }, { word: "deep", meaning: "濃い" }, { word: "light", meaning: "薄い" }, { word: "colorful", meaning: "カラフル" }, { word: "transparent", meaning: "透明" }
-        ],
-        "天気": [
-            { word: "sun", meaning: "太陽" }, { word: "rain", meaning: "雨" }, { word: "snow", meaning: "雪" }, { word: "wind", meaning: "風" }, { word: "cloud", meaning: "雲" },
-            { word: "storm", meaning: "嵐" }, { word: "fog", meaning: "霧" }, { word: "clear", meaning: "晴れた" }, { word: "warm", meaning: "暖かい" }, { word: "cold", meaning: "寒い" },
-            { word: "humid", meaning: "湿気た" }, { word: "forecast", meaning: "予報" }, { word: "rainbow", meaning: "虹" }, { word: "thunder", meaning: "雷" }, { word: "lightning", meaning: "稲妻" },
-            { word: "hail", meaning: "ひょう" }, { word: "breeze", meaning: "そよ風" }, { word: "typhoon", meaning: "台風" }, { word: "drizzle", meaning: "霧雨" }, { word: "overcast", meaning: "曇りの" }
-        ],
-        "体の部位": [
-            { word: "head", meaning: "頭" }, { word: "face", meaning: "顔" }, { word: "eye", meaning: "目" }, { word: "ear", meaning: "耳" }, { word: "nose", meaning: "鼻" },
-            { word: "mouth", meaning: "口" }, { word: "hand", meaning: "手（手首から下）" }, { word: "foot", meaning: "足（足首から下）" }, { word: "arm", meaning: "腕" }, { word: "leg", meaning: "脚" },
-            { word: "stomach", meaning: "胃/腹" }, { word: "neck", meaning: "首" }, { word: "back", meaning: "背中" }, { word: "finger", meaning: "指" }, { word: "hair", meaning: "髪" },
-            { word: "teeth", meaning: "歯" }, { word: "shoulder", meaning: "肩" }, { word: "chest", meaning: "胸" }, { word: "knee", meaning: "ひざ" }, { word: "skin", meaning: "肌" }
-        ],
-        "学校に関するもの": [
-            { word: "school", meaning: "学校" }, { word: "teacher", meaning: "先生" }, { word: "student", meaning: "生徒" }, { word: "class", meaning: "授業/クラス" }, { word: "lesson", meaning: "課/レッスン" },
-            { word: "homework", meaning: "宿題" }, { word: "test", meaning: "テスト" }, { word: "exam", meaning: "試験" }, { word: "library", meaning: "図書館" }, { word: "gym", meaning: "体育館" },
-            { word: "uniform", meaning: "制服" }, { word: "break", meaning: "休み時間" }, { word: "club", meaning: "部活" }, { word: "friend", meaning: "友達" }, { word: "study", meaning: "勉強" },
-            { word: "subject", meaning: "科目" }, { word: "history", meaning: "歴史" }, { word: "science", meaning: "科学" }, { word: "math", meaning: "数学" }, { word: "sport", meaning: "スポーツ" }
-        ]
-    },
-    "一般動詞セッション": {
-        "コーパストップ２０": [
-            { word: "say", meaning: "言う" }, { word: "get", meaning: "得る" }, { word: "make", meaning: "作る" }, { word: "go", meaning: "行く" }, { word: "know", meaning: "知る" },
-            { word: "take", meaning: "取る" }, { word: "see", meaning: "見る" }, { word: "come", meaning: "来る" }, { word: "think", meaning: "考える" }, { word: "look", meaning: "見る" },
-            { word: "want", meaning: "欲しい" }, { word: "give", meaning: "与える" }, { word: "use", meaning: "使う" }, { word: "find", meaning: "見つける" }, { word: "tell", meaning: "話す" },
-            { word: "ask", meaning: "尋ねる" }, { word: "work", meaning: "働く" }, { word: "seem", meaning: "〜のようだ" }, { word: "feel", meaning: "感じる" }, { word: "try", meaning: "試す" }
-        ],
-        "コーパストップ２０〜４０": [
-            { word: "leave", meaning: "去る" }, { word: "call", meaning: "呼ぶ" }, { word: "need", meaning: "必要とする" }, { word: "become", meaning: "〜になる" }, { word: "put", meaning: "置く" },
-            { word: "mean", meaning: "意味する" }, { word: "keep", meaning: "保つ" }, { word: "let", meaning: "許可する" }, { word: "begin", meaning: "始める" }, { word: "help", meaning: "助ける" },
-            { word: "turn", meaning: "曲がる" }, { word: "start", meaning: "始める" }, { word: "show", meaning: "示す" }, { word: "hear", meaning: "聞く" }, { word: "play", meaning: "遊ぶ" },
-            { word: "run", meaning: "走る" }, { word: "move", meaning: "動く" }, { word: "like", meaning: "好きだ" }, { word: "live", meaning: "住む" }, { word: "believe", meaning: "信じる" }
-        ],
-        "コーパストップ４０〜６０": [
-            { word: "bring", meaning: "持ってくる" }, { word: "happen", meaning: "起こる" }, { word: "write", meaning: "書く" }, { word: "provide", meaning: "提供する" }, { word: "sit", meaning: "座る" },
-            { word: "stand", meaning: "立つ" }, { word: "lose", meaning: "失う" }, { word: "pay", meaning: "支払う" }, { word: "meet", meaning: "会う" }, { word: "include", meaning: "含む" },
-            { word: "continue", meaning: "続ける" }, { word: "set", meaning: "設定する" }, { word: "learn", meaning: "学ぶ" }, { word: "change", meaning: "変える" }, { word: "wait", meaning: "待つ" },
-            { word: "watch", meaning: "見守る" }, { word: "follow", meaning: "従う" }, { word: "stop", meaning: "止める" }, { word: "create", meaning: "創造する" }, { word: "speak", meaning: "話す" }
-        ],
-        "コーパストップ６０〜８０": [
-            { word: "read", meaning: "読む" }, { word: "allow", meaning: "許す" }, { word: "add", meaning: "加える" }, { word: "spend", meaning: "費やす" }, { word: "grow", meaning: "育つ" },
-            { word: "open", meaning: "開ける" }, { word: "walk", meaning: "歩く" }, { word: "win", meaning: "勝つ" }, { word: "offer", meaning: "提供する" }, { word: "remember", meaning: "思い出す" },
-            { word: "love", meaning: "愛する" }, { word: "consider", meaning: "検討する" }, { word: "buy", meaning: "買う" }, { word: "serve", meaning: "奉仕する" }, { word: "die", meaning: "死ぬ" },
-            { word: "send", meaning: "送る" }, { word: "build", meaning: "建てる" }, { word: "stay", meaning: "留まる" }, { word: "fall", meaning: "落ちる" }, { word: "cut", meaning: "切る" }
-        ],
-        "コーパストップ８０〜１００": [
-            { word: "reach", meaning: "達する" }, { word: "kill", meaning: "殺す" }, { word: "raise", meaning: "上げる" }, { word: "pass", meaning: "通り過ぎる" }, { word: "sell", meaning: "売る" },
-            { word: "decide", meaning: "決定する" }, { word: "return", meaning: "戻る" }, { word: "explain", meaning: "説明する" }, { word: "hope", meaning: "望む" }, { word: "develop", meaning: "発展させる" },
-            { word: "carry", meaning: "運ぶ" }, { word: "break", meaning: "壊す" }, { word: "receive", meaning: "受け取る" }, { word: "agree", meaning: "同意する" }, { word: "support", meaning: "支援する" },
-            { word: "hit", meaning: "打つ" }, { word: "end", meaning: "終わる" }, { word: "save", meaning: "救う" }, { word: "drive", meaning: "運転する" }, { word: "remain", meaning: "残る" }
-        ]
-    },
-    
-    // === 英文コースセッション (CSVデータに基づく固定文: 全9パターン, 180問) ===
-    "英文コースセッション": {
-        "パターン１：「誰が(S)」「する(V)」（S + V / S + V + C）": [
-            { word: "I am Edward Trout.", meaning: "私はエドワード・トラウトです。" },
-            { word: "Are you an anime fan?", meaning: "あなたはアニメのファンですか。" },
-            { word: "Be brave.", meaning: "勇気を出して。" },
-            { word: "Don't worry.", meaning: "心配しないで。" },
-            { word: "The children look happy.", meaning: "子供たちは幸せそうに見えます。" },
-            { word: "Talking with him was fun.", meaning: "彼と話すことは楽しかったです。" },
-            { word: "My sister sings well.", meaning: "私の姉は歌が上手です。" },
-            { word: "The sky is blue.", meaning: "空は青いです。" },
-            { word: "She became a teacher.", meaning: "彼女は先生になりました。" },
-            { word: "We work hard.", meaning: "私たちは一生懸命働きます。" },
-            { word: "The door opened.", meaning: "ドアが開きました。" },
-            { word: "The food tastes salty.", meaning: "その食べ物は塩辛い味がします。" },
-            { word: "Everyone smiled.", meaning: "みんなが微笑みました。" },
-            { word: "You should be careful.", meaning: "あなたは注意すべきです。" },
-            { word: "They are quiet.", meaning: "彼らは静かです。" },
-            { word: "He seems nice.", meaning: "彼は優しそうだ。" },
-            { word: "Keep quiet.", meaning: "静かにしなさい。" },
-            { word: "The river flows quickly.", meaning: "その川は速く流れる。" },
-            { word: "I feel tired.", meaning: "私は疲れていると感じる。" },
-            { word: "Let's sing together.", meaning: "一緒に歌いましょう。" }
-        ],
-        "パターン２：「誰が(S)」「する(V)」「何を(O)」（S + V + O）": [
-            { word: "I like Japanese sweets.", meaning: "私は日本の甘い菓子が好きです。" },
-            { word: "Do you like rugby?", meaning: "あなたはラグビーが好きですか。" },
-            { word: "I do not play rugby.", meaning: "私はラグビーをしません。" },
-            { word: "We bought a new car.", meaning: "私たちは新しい車を買いました。" },
-            { word: "He speaks English well.", meaning: "彼は英語を上手に話します。" },
-            { word: "She is eating lunch now.", meaning: "彼女は今、昼食を食べています。" },
-            { word: "Did you see the movie?", meaning: "あなたはその映画を見ましたか。" },
-            { word: "I will write a letter tomorrow.", meaning: "私は明日、手紙を書くつもりです。" },
-            { word: "She must finish her homework.", meaning: "彼女は宿題を終えなければならない。" },
-            { word: "I have to call him later.", meaning: "私は後で彼に電話しなければならない。" },
-            { word: "Reading books is fun.", meaning: "本を読むことは楽しい。" },
-            { word: "They enjoyed hiking.", meaning: "彼らはハイキングを楽しみました。" },
-            { word: "He wants to buy a dog.", meaning: "彼は犬を買いたがっている。" },
-            { word: "I need to study hard.", meaning: "私は一生懸命勉強する必要がある。" },
-            { word: "I want you to help me.", meaning: "私はあなたに私を手伝ってほしい。" },
-            { word: "The government decided to stop the plan.", meaning: "政府はその計画を中止することを決定した。" },
-            { word: "I like to listen to music.", meaning: "私は音楽を聴くことが好きです。" },
-            { word: "He gave up smoking.", meaning: "彼は喫煙をやめました。" },
-            { word: "She knows how to cook Japanese food.", meaning: "彼女は日本食の調理方法を知っている。" },
-            { word: "I cannot make shumai.", meaning: "私はシュウマイを作ることができません。" }
-        ],
-        "パターン３：「誰が(S)」「する(V)」「誰に(O)」「何を(O)」（S + V + O + O）": [
-            { word: "My father gave me a new bike.", meaning: "私の父は私に新しい自転車をくれました。" },
-            { word: "She showed us her photos.", meaning: "彼女は私たちに彼女の写真を見せました。" },
-            { word: "I bought my sister a present.", meaning: "私は姉にプレゼントを買いました。" },
-            { word: "He taught me English.", meaning: "彼は私に英語を教えてくれました。" },
-            { word: "Can you lend me some money?", meaning: "私にお金を貸してもらえますか。" },
-            { word: "I told him the truth.", meaning: "私は彼に真実を話しました。" },
-            { word: "Please send me an email.", meaning: "私にEメールを送ってください。" },
-            { word: "I will make you some coffee.", meaning: "私はあなたにコーヒーを淹れてあげます。" },
-            { word: "He passed me the salt.", meaning: "彼は私に塩を手渡しました。" },
-            { word: "They offered him a good job.", meaning: "彼らは彼に良い仕事を提供した。" },
-            { word: "We wish you a happy new year.", meaning: "私たちはあなたに幸せな新年を願っています。" },
-            { word: "She asked me a question.", meaning: "彼女は私に質問をしました。" },
-            { word: "I owe you $10.", meaning: "私はあなたに10ドル借りています。" },
-            { word: "Read me a story.", meaning: "私に物語を読んでください。" },
-            { word: "He brought his children gifts.", meaning: "彼は子供たちに贈り物を買ってきました。" },
-            { word: "I found my dog a toy.", meaning: "私は犬に新しいおもちゃを見つけてあげました。" },
-            { word: "Tell me what you have done.", meaning: "あなた(たち)が何をしたところかを教えてください。" },
-            { word: "We cooked them dinner.", meaning: "私たちは彼らに夕食を作りました。" },
-            { word: "Will you buy me this book?", meaning: "私にこの本を買ってくれますか。" },
-            { word: "He saved me a seat.", meaning: "彼は私の席を取っておいてくれました。" }
-        ],
-        "パターン４：「誰が(S)」「する(V)」「何を(O)」「どこに（A）」（S + V + O + A）": [
-            { word: "I put the book on the table.", meaning: "私はテーブルの上に本を置きました。" },
-            { word: "She took her dog to the park.", meaning: "彼女は犬を公園に連れて行きました。" },
-            { word: "We found the keys in the drawer.", meaning: "私たちは引き出しの中に鍵を見つけました。" },
-            { word: "He hung the picture on the wall.", meaning: "彼は壁に絵を掛けました。" },
-            { word: "Don't leave the door open.", meaning: "ドアを開けっ放しにしないでください。" },
-            { word: "She kept the children happy.", meaning: "彼女は子供たちを幸せな状態に保った。" },
-            { word: "They made him their leader.", meaning: "彼らは彼を自分たちのリーダーにした。" },
-            { word: "I consider her my best friend.", meaning: "私は彼女を親友だと思っています。" },
-            { word: "We paint the house white.", meaning: "私たちは家を白く塗ります。" },
-            { word: "I saw him run away.", meaning: "私は彼が逃げ去るのを見た。" },
-            { word: "She heard me call her name.", meaning: "彼女は私が彼女の名前を呼ぶのを聞いた。" },
-            { word: "I want my coffee hot.", meaning: "私はコーヒーを熱い状態で飲みたい。" },
-            { word: "The news made me sad.", meaning: "そのニュースは私を悲しくさせた。" },
-            { word: "I had my hair cut.", meaning: "私は髪を切ってもらった。" },
-            { word: "I got my computer fixed.", meaning: "私はコンピューターを修理してもらった。" },
-            { word: "I want the work finished by Friday.", meaning: "私は金曜日までにその仕事を終えてほしい。" },
-            { word: "The wind made the window open.", meaning: "風が窓を開けさせた。" },
-            { word: "She believes him honest.", meaning: "彼女は彼が正直だと信じている。" },
-            { word: "I found the task easy.", meaning: "私はその課題が簡単だとわかった。" },
-            { word: "He often drives the car too fast.", meaning: "彼はしばしば車を速く運転しすぎる。" }
-        ],
-        "パターン５：関係詞（Who / Which / That）": [
-            { word: "The woman smiling in a kimono is Taylor.", meaning: "着物を着てほほえんでいる女性はテイラーです。" },
-            { word: "Gandhi is a man who has influenced a lot of people.", meaning: "ガンディーは多くの人々に影響を与えた人です。" },
-            { word: "This is a movie that makes people happy.", meaning: "これは人々を幸せにする映画です。" },
-            { word: "This is a picture that I found on the internet.", meaning: "これは私がインターネットで見つけた写真です。" },
-            { word: "Many things that we see every day come from overseas.", meaning: "私たちが毎日目にする多くのものは海外から来ています。" },
-            { word: "There is a movie called Live Your Dream.", meaning: "「Live Your Dream (夢を生きる)」と呼ばれる映画があります。" },
-            { word: "I wish I had pens and notebooks.", meaning: "ノートやペンを持っていればいいのになあ。" },
-            { word: "I know a man who can speak five languages.", meaning: "私は5ヶ国語を話せる男性を知っています。" },
-            { word: "She is the artist whose painting I bought.", meaning: "彼女は私が絵を買ったアーティストです。" },
-            { word: "I live in a town which is famous for its cheese.", meaning: "私はチーズで有名な町に住んでいます。" },
-            { word: "This is the place where we first met.", meaning: "ここは私たちが初めて会った場所です。" },
-            { word: "Do you remember the day when we went to Kyoto?", meaning: "私たちが京都へ行った日を覚えていますか。" },
-            { word: "The reason why I came here is to talk to you.", meaning: "私がここに来た理由はあなたと話すことです。" },
-            { word: "The girl wearing a red hat is my cousin.", meaning: "赤い帽子をかぶっている女の子は私のいとこです。" },
-            { word: "He is the only person who knows the secret.", meaning: "彼はその秘密を知っている唯一の人だ。" },
-            { word: "I couldn't hear what he said.", meaning: "私は彼が言ったことを聞き取れませんでした。" },
-            { word: "Tell me what you think.", meaning: "あなたがどう思うか教えてください。" },
-            { word: "This is the pen with which I write my novel.", meaning: "これは私が小説を書くのに使うペンです。" },
-            { word: "He is the man to whom I gave the book.", meaning: "彼が私がその本をあげた男性です。" },
-            { word: "That is the most beautiful flower I have ever seen.", meaning: "あれは私が今まで見た中で最も美しい花です。" }
-        ],
-        "パターン６：比較（as...as / more...than / the most）": [
-            { word: "My sister is as tall as me.", meaning: "私の姉は私と同じくらい背が高い。" },
-            { word: "He is taller than his brother.", meaning: "彼は彼の弟より背が高い。" },
-            { word: "This is the oldest temple in Kyoto.", meaning: "これは京都で最も古い寺です。" },
-            { word: "She runs faster than I do.", meaning: "彼女は私よりも速く走る。" },
-            { word: "This book is more interesting than that one.", meaning: "この本はあの本よりもっと面白い。" },
-            { word: "It was the most exciting game I have ever watched.", meaning: "それは私が今まで見た中で最もわくわくする試合だった。" },
-            { word: "I can't run as fast as you.", meaning: "私はあなたほど速く走れません。" },
-            { word: "The more you practice, the better you become.", meaning: "練習すればするほど、上手になる。" },
-            { word: "He has as many books as I do.", meaning: "彼は私と同じくらいの数の本を持っている。" },
-            { word: "The population of Tokyo is larger than that of Osaka.", meaning: "東京の人口は大阪の人口よりも多い。" },
-            { word: "I like coffee better than tea.", meaning: "私は紅茶よりもコーヒーが好きです。" },
-            { word: "She is one of the best singers in the world.", meaning: "彼女は世界で最も歌が上手な歌手の一人だ。" },
-            { word: "English is the most important subject for me.", meaning: "私にとって英語が最も重要な科目だ。" },
-            { word: "He looks much happier than yesterday.", meaning: "彼は昨日よりもずっと幸せそうだ。" },
-            { word: "The food was less salty than I expected.", meaning: "その食べ物は私が期待していたほど塩辛くなかった。" },
-            { word: "Nothing is more important than health.", meaning: "健康よりも大切なものはない。" },
-            { word: "I got up as early as possible.", meaning: "私はできるだけ早く起きた。" },
-            { word: "He ate twice as much as I did.", meaning: "彼は私の2倍の量を食べた。" },
-            { word: "She is not only smart but also kind.", meaning: "彼女は賢いだけでなく、優しい。" },
-            { word: "I prefer dogs to cats.", meaning: "私は猫よりも犬が好きだ。" }
-        ],
-        "パターン７：受動態（Be + 過去分詞）": [
-            { word: "This movie was directed by a famous director.", meaning: "この映画は有名な監督によって監督された。" },
-            { word: "English is spoken in many countries.", meaning: "英語は多くの国で話されている。" },
-            { word: "The window was broken by the children.", meaning: "窓は子供たちによって割られました。" },
-            { word: "A new library will be built next year.", meaning: "新しい図書館は来年建設されるだろう。" },
-            { word: "The cake was made by my mother.", meaning: "そのケーキは私の母によって作られた。" },
-            { word: "The problem has been solved.", meaning: "その問題は解決された。" },
-            { word: "He was surprised at the news.", meaning: "彼はそのニュースに驚いた。" },
-            { word: "She is interested in Japanese culture.", meaning: "彼女は日本文化に興味がある。" },
-            { word: "I am worried about my exam.", meaning: "私は試験のことが心配だ。" },
-            { word: "The stadium is always crowded with people.", meaning: "そのスタジアムはいつも人々で混雑している。" },
-            { word: "He was known to everyone in the town.", meaning: "彼は町のみんなに知られていた。" },
-            { word: "The door must be kept locked.", meaning: "ドアは鍵をかけておかなければならない。" },
-            { word: "You must be treated kindly.", meaning: "あなたは親切に扱われるべきだ。" },
-            { word: "We were told to wait outside.", meaning: "私たちは外で待つように言われた。" },
-            { word: "The house was built 50 years ago.", meaning: "その家は50年前に建てられた。" },
-            { word: "Is this book read by many students?", meaning: "この本は多くの生徒に読まれていますか。" },
-            { word: "The letter was written in English.", meaning: "その手紙は英語で書かれていた。" },
-            { word: "They were given some advice.", meaning: "彼らはいくつかアドバイスを与えられた。" },
-            { word: "A new hospital is being constructed now.", meaning: "新しい病院が今、建設中です。" },
-            { word: "It is said that he is a genius.", meaning: "彼は天才だと言われている。" }
-        ],
-        "パターン８：to不定詞（名詞的・形容詞的・副詞的）": [
-            { word: "My dream is to travel around the world.", meaning: "私の夢は世界中を旅することです。" },
-            { word: "I want to buy a new computer.", meaning: "私は新しいコンピューターを買いたい。" },
-            { word: "It is easy to learn Japanese.", meaning: "日本語を学ぶのは簡単です。" },
-            { word: "I have a lot of homework to do.", meaning: "私にはするべき宿題がたくさんある。" },
-            { word: "She has no friends to talk with.", meaning: "彼女には一緒に話す友達がいない。" },
-            { word: "We went to the park to play soccer.", meaning: "私たちはサッカーをするために公園へ行きました。" },
-            { word: "He studied hard to pass the exam.", meaning: "彼は試験に合格するために一生懸命勉強した。" },
-            { word: "I was surprised to hear the news.", meaning: "私はそのニュースを聞いて驚いた。" },
-            { word: "You must be tired to say such a thing.", meaning: "そんなことを言うなんて、あなたは疲れているに違いない。" },
-            { word: "He grew up to be a doctor.", meaning: "彼は成長して医者になった。" },
-            { word: "I decided not to go there.", meaning: "私はそこに行かないことを決めた。" },
-            { word: "To tell the truth, I don't like natto.", meaning: "実を言うと、私は納豆が好きではない。" },
-            { word: "I don't know what to do next.", meaning: "次に何をすべきか私にはわからない。" },
-            { word: "The boy needs someone to play with.", meaning: "その男の子には一緒に遊ぶ誰かが必要だ。" },
-            { word: "It is important for us to learn history.", meaning: "私たちにとって歴史を学ぶことは重要です。" },
-            { word: "She seems to be rich.", meaning: "彼女は裕福なようだ。" },
-            { word: "They plan to visit Kyoto next month.", meaning: "彼らは来月、京都を訪れる予定だ。" },
-            { word: "I have nothing to talk about.", meaning: "私には話すことが何もない。" },
-            { word: "I have too much work to do.", meaning: "私にはすることが多すぎる。" },
-            { word: "He is old enough to drive a car.", meaning: "彼は車を運転できる年齢だ。" }
-        ],
-        "パターン９：接続詞・従属節（When / If / That / Because / Although など）": [
-            { word: "When I came home, my mother was cooking dinner.", meaning: "私が家に帰ったとき、母は夕食を作っていた。" },
-            { word: "If it rains tomorrow, we will stay home.", meaning: "もし明日雨が降れば、私たちは家にいるだろう。" },
-            { word: "I think that he is honest.", meaning: "私は彼が正直だと思います。" },
-            { word: "Because I was tired, I went to bed early.", meaning: "疲れていたので、私は早く寝ました。" },
-            { word: "Although it was cold, we went swimming.", meaning: "寒かったけれど、私たちは泳ぎに行った。" },
-            { word: "She said that she would help me.", meaning: "彼女は私を手伝うだろうと言った。" },
-            { word: "Tell me when you will come.", meaning: "あなたがいつ来るか教えてください。" },
-            { word: "I don't know if he is coming.", meaning: "彼が来るかどうか私にはわからない。" },
-            { word: "The news that he won the lottery is true.", meaning: "彼が宝くじに当たったというニュースは本当だ。" },
-            { word: "She is working hard so that she can buy a house.", meaning: "彼女は家を買えるように一生懸命働いている。" },
-            { word: "I will wait until you come back.", meaning: "あなたが戻ってくるまで待っています。" },
-            { word: "He left before I woke up.", meaning: "彼が目を覚ます前に彼は出かけた。" },
-            { word: "It has been raining since last night.", meaning: "昨夜から雨が降り続いている。" },
-            { word: "I will go even if it snows.", meaning: "たとえ雪が降っても私は行きます。" },
-            { word: "I am sure that she will succeed.", meaning: "私は彼女が成功すると確信している。" },
-            { word: "The problem is that we don't have enough money.", meaning: "問題は私たちにお金が十分ないことです。" },
-            { word: "As soon as I arrived, I called her.", meaning: "到着するやいなや、私は彼女に電話した。" },
-            { word: "He looks as if he were ill.", meaning: "彼は病気であるかのように見える。" },
-            { word: "I don't know why he is angry.", meaning: "彼がなぜ怒っているのか私にはわからない。" },
-            { word: "Whether you like it or not, you have to do it.", meaning: "好きであろうとなかろうと、あなたはそれをしなければならない。" }
-        ],
-        "仮定法（If S were / I wish など）": [
-            { word: "If I were an animal, I would be a dolphin.", meaning: "もし私が動物なら、イルカになるでしょう。" },
-            { word: "If she were here, she would know what to do.", meaning: "もし彼女がここにいれば、何をすべきかわかるだろうに。" },
-            { word: "He acts as if he were a leader.", meaning: "彼はまるでリーダーであるかのように振る舞います。" },
-            { word: "If it were sunny, we could go hiking.", meaning: "もし晴れていたら、ハイキングに行けるのに。" },
-            { word: "I wish I didn't have to work this weekend.", meaning: "今週末、仕事をしなくて済めばいいのに。" },
-            { word: "What would you do if you won the lottery?", meaning: "もし宝くじに当たったら、何をしますか。" },
-            { word: "If they changed the rule, the game would be better.", meaning: "もし彼らがルールを変えたら、試合はもっとよくなるだろうに。" },
-            { word: "I wish I knew the answer to that question.", meaning: "あの質問の答えを知っていればいいのに。" },
-            { word: "If I spoke French, I could live in Paris.", meaning: "もし私がフランス語を話せたら、パリに住めるのに。" },
-            { word: "She looked as if she hadn't slept for days.", meaning: "彼女はまるで数日間寝ていないかのように見えました。" },
-            { word: "I wish I were good at singing.", meaning: "歌が上手ければいいのになあ。" },
-            { word: "If I had known the truth, I would have told you.", meaning: "もし私が真実を知っていたら、あなたに話しただろう。" },
-            { word: "He talks as if he knew everything.", meaning: "彼はまるで何でも知っているかのように話す。" },
-            { word: "If you had been there, you would have enjoyed it.", meaning: "もしあなたがそこにいたら、楽しめたでしょう。" },
-            { word: "I wish I could fly like a bird.", meaning: "鳥のように飛べたらいいのになあ。" },
-            { word: "If I won a million dollars, I would travel the world.", meaning: "もし100万ドル当たったら、世界を旅するだろう。" },
-            { word: "I wish I hadn't said that to her.", meaning: "彼女にそんなことを言わなければよかった。" },
-            { word: "If I had a school backpack, I would donate it.", meaning: "もし私がランドセルを持っていれば、寄付するでしょう。" },
-            { word: "He behaves as if nothing had happened.", meaning: "彼は何も起こらなかったかのように振る舞う。" },
-            { word: "If it were not for the sun, nothing could live.", meaning: "もし太陽がなければ、何も生きられないだろう。" }
-        ]
-    }
-};
-
-// =========================================================
-// 2. 構文テンプレートロジックは削除 (固定文のみ使用のため)
-// =========================================================
-
-
-// =========================================================
-// 3. グローバルな状態管理とDOM要素
-// =========================================================
-
-const GAME_STATE = {
-    currentMode: null, // 'normal' または 'instant'
-    selectedSession: null, 
-    selectedCourse: null,
-    wordList: [],
-    currentWordIndex: 0,
-    score: 0,
-    mistakeCount: 0,
-    timer: 60, // 60秒からスタート
-    timerInterval: null,
-    isGameStarted: false,
-    isGameOver: false,
-    // 1単語内でのペナルティ適用を管理するフラグ
-    currentWordMistakeFlag: false, 
-};
-
-const DURATION_PENALTY = 5; // ミスタイプ時のペナルティ秒数
-const POINTS_PER_CHARACTER = 10; // 1文字あたりのスコア
-
-// DOM要素の参照
-const $ = id => document.getElementById(id);
-
-const elements = {
-    home: $('home-screen'),
-    game: $('game-screen'),
-    result: $('result-screen'),
-    
-    // Home elements
-    courseSelectionTitle: $('course-selection-title'),
-    courseSelectionContainer: $('course-selection-container'),
-    selectedModeDisplay: $('selected-mode-display'),
-    
-    // Game elements
-    currentModeDisplay: $('current-mode-display'),
-    courseDisplay: $('current-course-display'),
-    timer: $('timer'),
-    score: $('score'),
-    mistakeCount: $('mistake-count'),
-    wordProgress: $('word-progress'),
-    wordMeaning: $('word-meaning'),
-    wordDisplay: $('word-display'),
-    typingInput: $('typing-input'),
-    feedbackMessage: $('feedback-message'),
-    
-    // Result elements
-    finalScore: $('final-score'),
-    completedWords: $('completed-words'),
-    totalWords: $('total-words'),
-
-    nounCourses: $('noun-courses'),
-    verbCourses: $('verb-courses'),
-    sentenceCourses: $('sentence-courses')
-};
-
-
-// =========================================================
-// 4. UI画面の切り替え
-// =========================================================
-
-/**
- * 画面を切り替える
- * @param {('home'|'game'|'result')} screenId - 表示する画面ID
- */
-function changeScreen(screenId) {
-    elements.home.classList.add('hidden');
-    elements.game.classList.add('hidden');
-    elements.result.classList.add('hidden');
-    
-    if (screenId === 'home') {
-        elements.home.classList.remove('hidden');
-        // モード選択状態に応じてUIを調整
-        if (GAME_STATE.currentMode) {
-            showCourseSelection();
-        } else {
-            hideCourseSelection();
+    // --- 意味順ドリルデータ ---
+    // 添付された最新のCSVファイル「意味順ドリルリスト.xlsx - Sheet1.csv」から抽出した、全9パターン180問の固定問題
+    const WORD_DATA = {
+        "普通名詞セッション": {
+            "Level 1 (初級)": [
+                { en: "dog", ja: "犬" }, { en: "cat", ja: "猫" }, { en: "apple", ja: "りんご" }, { en: "book", ja: "本" }, { en: "car", ja: "車" },
+                { en: "house", ja: "家" }, { en: "tree", ja: "木" }, { en: "sun", ja: "太陽" }, { en: "moon", ja: "月" }, { en: "star", ja: "星" },
+                { en: "pen", ja: "ペン" }, { en: "cup", ja: "カップ" }, { en: "desk", ja: "机" }, { en: "chair", ja: "椅子" }, { en: "door", ja: "ドア" },
+                { en: "girl", ja: "少女" }, { en: "boy", ja: "少年" }, { en: "man", ja: "男性" }, { en: "woman", ja: "女性" }, { en: "flower", ja: "花" }
+            ],
+            "Level 2 (中級)": [
+                { en: "computer", ja: "コンピューター" }, { en: "telephone", ja: "電話" }, { en: "umbrella", ja: "傘" }, { en: "mountain", ja: "山" }, { en: "river", ja: "川" },
+                { en: "ocean", ja: "海" }, { en: "country", ja: "国" }, { en: "city", ja: "都市" }, { en: "street", ja: "通り" }, { en: "hospital", ja: "病院" },
+                { en: "market", ja: "市場" }, { en: "museum", ja: "美術館" }, { en: "camera", ja: "カメラ" }, { en: "ticket", ja: "チケット" }, { en: "clothes", ja: "服" },
+                { en: "friend", ja: "友達" }, { en: "family", ja: "家族" }, { en: "office", ja: "オフィス" }, { en: "garden", ja: "庭" }, { en: "music", ja: "音楽" }
+            ]
+        },
+        "一般動詞セッション": {
+            "Level 1 (現在形)": [
+                { en: "run", ja: "走る" }, { en: "walk", ja: "歩く" }, { en: "eat", ja: "食べる" }, { en: "drink", ja: "飲む" }, { en: "sleep", ja: "眠る" },
+                { en: "read", ja: "読む" }, { en: "write", ja: "書く" }, { en: "speak", ja: "話す" }, { en: "listen", ja: "聞く" }, { en: "watch", ja: "見る" },
+                { en: "play", ja: "遊ぶ" }, { en: "study", ja: "勉強する" }, { en: "work", ja: "働く" }, { en: "live", ja: "住む" }, { en: "travel", ja: "旅行する" },
+                { en: "start", ja: "始める" }, { en: "finish", ja: "終える" }, { en: "open", ja: "開ける" }, { en: "close", ja: "閉める" }, { en: "know", ja: "知っている" }
+            ],
+            "Level 2 (過去形)": [
+                { en: "ran", ja: "走った" }, { en: "walked", ja: "歩いた" }, { en: "ate", ja: "食べた" }, { en: "drank", ja: "飲んだ" }, { en: "slept", ja: "眠った" },
+                { en: "read", ja: "読んだ" }, { en: "wrote", ja: "書いた" }, { en: "spoke", ja: "話した" }, { en: "listened", ja: "聞いた" }, { en: "watched", ja: "見た" },
+                { en: "played", ja: "遊んだ" }, { en: "studied", ja: "勉強した" }, { en: "worked", ja: "働いた" }, { en: "lived", ja: "住んだ" }, { en: "traveled", ja: "旅行した" },
+                { en: "started", ja: "始めた" }, { en: "finished", ja: "終えた" }, { en: "opened", ja: "開けた" }, { en: "closed", ja: "閉めた" }, { en: "knew", ja: "知っていた" }
+            ]
+        },
+        "英文コースセッション": {
+            "パターン1：「誰が(S)」「する(V)」（S + V / S + V + C）": [
+                { en: "I am Edward Trout.", ja: "私はエドワード・トラウトです。" }, { en: "Are you an anime fan?", ja: "あなたはアニメのファンですか。" },
+                { en: "Be brave.", ja: "勇気を出して。" }, { en: "Don't worry.", ja: "心配しないで。" }, { en: "The children look happy.", ja: "子供たちは幸せそうに見えます。" },
+                { en: "Talking with him was fun.", ja: "彼と話すことは楽しかったです。" }, { en: "My sister sings well.", ja: "私の姉は歌が上手です。" },
+                { en: "The sky is blue.", ja: "空は青いです。" }, { en: "She became a teacher.", ja: "彼女は先生になりました。" }, { en: "We work hard.", ja: "私たちは一生懸命働きます。" },
+                { en: "The door opened.", ja: "ドアが開きました。" }, { en: "The food tastes salty.", ja: "その食べ物は塩辛い味がします。" }, { en: "Everyone smiled.", ja: "みんなが微笑みました。" },
+                { en: "He lives in Japan.", ja: "彼は日本に住んでいます。" }, { en: "I came back at 6 p.m.", ja: "私は午後6時に帰ってきました。" },
+                { en: "She waited for him.", ja: "彼女は彼を待ちました。" }, { en: "He looks happy.", ja: "彼は幸せそうに見えます。" },
+                { en: "I feel good.", ja: "私は気分がいいです。" }, { en: "He is sad.", ja: "彼は悲しいです。" }, { en: "I walked fast.", ja: "私は速く歩きました。" }
+            ],
+            "パターン2：「誰が(S)」「する(V)」「何を(O)」（S + V + O）": [
+                { en: "I like Japanese sweets.", ja: "私は日本の甘い菓子が好きです。" }, { en: "Do you like rugby?", ja: "あなたはラグビーが好きですか。" },
+                { en: "I do not play rugby.", ja: "私はラグビーをしません。" }, { en: "I cannot make shumai.", ja: "私はシュウマイを作ることができません。" },
+                { en: "Can you read hiragana?", ja: "あなたはひらがなを読むことができますか。" }, { en: "You should not eat this much.", ja: "あなたはこんなにたくさん食べるべきではありません。" },
+                { en: "I know his name.", ja: "私は彼の名前を知っています。" }, { en: "She wants a new dress.", ja: "彼女は新しいドレスを欲しがっています。" },
+                { en: "He has a big dog.", ja: "彼は大きな犬を飼っています。" }, { en: "We saw him yesterday.", ja: "私たちは昨日彼に会いました。" },
+                { en: "I want to eat pizza.", ja: "私はピザを食べたいです。" }, { en: "He stopped smoking.", ja: "彼は喫煙をやめました。" },
+                { en: "I enjoyed reading the book.", ja: "私はその本を読むことを楽しみました。" }, { en: "She finished doing her homework.", ja: "彼女は宿題を終えました。" },
+                { en: "I decided to go home.", ja: "私は家に帰ることに決めました。" }, { en: "They like playing tennis.", ja: "彼らはテニスをすることが好きです。" },
+                { en: "I want to know the truth.", ja: "私は真実を知りたいです。" }, { en: "She needs to buy some food.", ja: "彼女は食べ物を買う必要があります。" },
+                { en: "We must study hard.", ja: "私たちは一生懸命勉強しなければなりません。" }, { en: "You do not have to clean the room.", ja: "あなたは部屋を掃除する必要はありません。" }
+            ],
+            "パターン3：「誰が(S)」「する(V)」「誰に(O)」「何を(O)」（S + V + O + O）": [
+                { en: "They gave us some drinks.", ja: "彼らは私たちに飲み物をいくらかくれました。" }, { en: "My father bought me a new camera.", ja: "私の父は私に新しいカメラを買ってくれました。" },
+                { en: "Can you show me your photo?", ja: "あなたの写真を見せてくれませんか。" }, { en: "She taught us English.", ja: "彼女は私たちに英語を教えてくれました。" },
+                { en: "I will make him a nice dinner.", ja: "私は彼に素敵な夕食を作ってあげるつもりです。" }, { en: "Tell me your name.", ja: "あなたの名前を私に教えてください。" },
+                { en: "Please pass me the salt.", ja: "私に塩を取ってください。" }, { en: "I wrote her a letter.", ja: "私は彼女に手紙を書きました。" },
+                { en: "He sent me an email.", ja: "彼は私にメールを送りました。" }, { en: "She brought him a cup of coffee.", ja: "彼女は彼にコーヒーを持ってきてくれました。" },
+                { en: "I bought him a ticket to the concert.", ja: "私は彼にコンサートのチケットを買ってあげました。" }, { en: "We sang them a song.", ja: "私たちは彼らに歌を歌いました。" },
+                { en: "He showed us how to cook.", ja: "彼は私たちに料理の仕方を教えてくれました。" }, { en: "They made her a chair.", ja: "彼らは彼女に椅子を作ってあげました。" },
+                { en: "The book taught me many things.", ja: "その本は私に多くのことを教えてくれました。" }, { en: "She gave me a beautiful flower.", ja: "彼女は私に美しい花をくれました。" },
+                { en: "Can you lend me your umbrella?", ja: "私にあなたの傘を貸してくれませんか。" }, { en: "He found her a job.", ja: "彼は彼女に仕事を見つけてあげました。" },
+                { en: "I offered him a drink.", ja: "私は彼に飲み物を勧めました。" }, { en: "They asked me a difficult question.", ja: "彼らは私に難しい質問をしました。" }
+            ],
+            "パターン4：「誰が(S)」「する(V)」「何を(O)」「どう(C/A)」（S + V + O + C / S + V + O + A）": [
+                { en: "I found the box empty.", ja: "私はその箱が空だとわかりました。" }, { en: "We call this festival Tanabata.", ja: "私たちはこの祭りを七夕と呼びます。" },
+                { en: "I want you to come here.", ja: "私はあなたにここに来てほしいです。" }, { en: "She told me to wait.", ja: "彼女は私に待つように言いました。" },
+                { en: "He made me happy.", ja: "彼は私を幸せにしました。" }, { en: "They kept the secret safe.", ja: "彼らは秘密を安全に保ちました。" },
+                { en: "I think him a genius.", ja: "私は彼を天才だと思います。" }, { en: "We consider her a good leader.", ja: "私たちは彼女を良いリーダーだと考えています。" },
+                { en: "I saw him running.", ja: "私は彼が走っているのを見ました。" }, { en: "She heard him sing.", ja: "彼女は彼が歌うのを聞きました。" },
+                { en: "They named the baby Hana.", ja: "彼らはその赤ちゃんにハナと名付けました。" }, { en: "I will leave the window open.", ja: "私は窓を開けたままにしておくつもりです。" },
+                { en: "He let me use his phone.", ja: "彼は私に彼の電話を使わせてくれました。" }, { en: "I had my hair cut.", ja: "私は髪を切ってもらいました。" },
+                { en: "The police caught the thief stealing.", ja: "警察はその泥棒が盗んでいるところを捕まえました。" }, { en: "She painted the wall red.", ja: "彼女は壁を赤く塗りました。" },
+                { en: "We believe him honest.", ja: "私たちは彼が正直だと信じています。" }, { en: "I found the key on the floor.", ja: "私は床で鍵を見つけました。" },
+                { en: "He put his hand on my shoulder.", ja: "彼は私の肩に手を置きました。" }, { en: "We elected him president.", ja: "私たちは彼を大統領に選びました。" }
+            ],
+            "パターン5：「誰が(S)」「する(V)」「何を(O)」（動詞の後ろにto不定詞・動名詞）": [
+                { en: "I decided to study abroad.", ja: "私は留学することを決めました。" }, { en: "She promised to help me.", ja: "彼女は私を助けることを約束しました。" },
+                { en: "I finished writing a report.", ja: "私はレポートを書き終えました。" }, { en: "He enjoys playing the guitar.", ja: "彼はギターを弾くことを楽しみます。" },
+                { en: "I want to know where he lives.", ja: "私は彼がどこに住んでいるのか知りたいです。" }, { en: "I don't know what to say.", ja: "何を言うべきかわかりません。" },
+                { en: "He suddenly began to sing.", ja: "彼は突然歌い始めました。" }, { en: "I stopped eating sweets.", ja: "私は甘いものを食べるのをやめました。" },
+                { en: "Remember to lock the door.", ja: "ドアに鍵をかけることを覚えておきなさい。" }, { en: "I remember meeting him.", ja: "私は彼に会ったことを覚えています。" },
+                { en: "I regret saying that.", ja: "私はそう言ったことを後悔しています。" }, { en: "I tried to open the door.", ja: "私はドアを開けようとしました。" },
+                { en: "They hope to visit Kyoto.", ja: "彼らは京都を訪れることを望んでいます。" }, { en: "I learned how to make bread.", ja: "私はパンの作り方を学びました。" },
+                { en: "She started crying.", ja: "彼女は泣き始めました。" }, { en: "Avoid driving fast.", ja: "速く運転することは避けなさい。" },
+                { en: "We need to leave now.", ja: "私たちは今出発する必要があります。" }, { en: "I don't mind waiting.", ja: "私は待つのを気にしません。" },
+                { en: "He suggested going to the park.", ja: "彼は公園に行くことを提案しました。" }, { en: "I prefer reading books.", ja: "私は本を読むことを好みます。" }
+            ],
+            "パターン6：「誰が(S)」「する(V)」 (補語・副詞の後に to V / that節)": [
+                { en: "She is happy to hear that.", ja: "彼女はそれを聞いて嬉しいです。" }, { en: "I am sure that he will come.", ja: "彼が来ることを私は確信しています。" },
+                { en: "It is important to study English.", ja: "英語を勉強することは重要です。" }, { en: "I am sorry to bother you.", ja: "お邪魔してすみません。" },
+                { en: "It is easy for him to run fast.", ja: "彼が速く走ることは簡単です。" }, { en: "I was surprised to see her there.", ja: "私は彼女がそこにいるのを見て驚きました。" },
+                { en: "She seems to be rich.", ja: "彼女は裕福なようです。" }, { en: "It is necessary that we act now.", ja: "私たちが今行動することが必要です。" },
+                { en: "I hope that you are well.", ja: "あなたが元気であることを望んでいます。" }, { en: "He spoke loud enough to be heard.", ja: "彼は聞こえるほど大きな声で話しました。" },
+                { en: "The news made me happy.", ja: "その知らせは私を幸せにしました。" }, { en: "I found it difficult to finish the task.", ja: "私はその仕事を終えるのは難しいとわかりました。" },
+                { en: "She decided that she would leave.", ja: "彼女は出発することを決心しました。" }, { en: "I believe that she is right.", ja: "私は彼女が正しいと信じています。" },
+                { en: "It is true that he is famous.", ja: "彼が有名だというのは本当です。" }, { en: "I heard that they moved.", ja: "彼らが引っ越したと聞きました。" },
+                { en: "She thought that I was wrong.", ja: "彼女は私が間違っていると思いました。" }, { en: "I found that the door was open.", ja: "私はドアが開いていることに気づきました。" },
+                { en: "It is time to go home.", ja: "家に帰る時間です。" }, { en: "She is too tired to walk.", ja: "彼女は疲れすぎて歩けません。" }
+            ],
+            "パターン7：「誰が(S)」「する(V)」（時制・完了形）": [
+                { en: "I have known him for ten years.", ja: "私は彼を10年間知っています。" }, { en: "Have you ever been to Canada?", ja: "あなたは今までにカナダへ行ったことがありますか。" },
+                { en: "She has just finished her homework.", ja: "彼女はちょうど宿題を終えたところです。" }, { en: "He has lived here since 2010.", ja: "彼は2010年からここに住んでいます。" },
+                { en: "When did you buy this car?", ja: "あなたはいつこの車を買いましたか。" }, { en: "I was reading a book when he called.", ja: "彼が電話してきたとき、私は本を読んでいました。" },
+                { en: "I am going to visit her tomorrow.", ja: "私は明日、彼女を訪ねるつもりです。" }, { en: "He will be back soon.", ja: "彼はすぐに戻ってくるでしょう。" },
+                { en: "She has been studying all day.", ja: "彼女は一日中ずっと勉強しています。" }, { en: "By next week, I will have finished the project.", ja: "来週までに、私はそのプロジェクトを終えているでしょう。" },
+                { en: "She had already left when I arrived.", ja: "私が到着したとき、彼女はすでに去っていました。" }, { en: "I wish I had met him sooner.", ja: "もっと早く彼に会えていたらよかったのに。" },
+                { en: "I think I will go.", ja: "私は行くだろうと思います。" }, { en: "He looks as if he has seen a ghost.", ja: "彼はまるで幽霊を見たかのように見えます。" },
+                { en: "The train had already left.", ja: "その電車はすでに出発していました。" }, { en: "I will call you when I arrive.", ja: "着いたら電話します。" },
+                { en: "She is always complaining.", ja: "彼女はいつも文句ばかり言っています。" }, { en: "We are watching a movie now.", ja: "私たちは今、映画を見ています。" },
+                { en: "He used to live here.", ja: "彼は以前ここに住んでいました。" }, { en: "I would often visit my grandmother.", ja: "私はよく祖母を訪ねたものでした。" }
+            ],
+            "パターン8：「誰が(S)」「される(V)」（受動態）": [
+                { en: "This song is loved by many people.", ja: "この歌は多くの人々に愛されています。" }, { en: "The bridge was built last year.", ja: "その橋は昨年建てられました。" },
+                { en: "English is spoken in many countries.", ja: "英語は多くの国で話されています。" }, { en: "Is this food made in Japan?", ja: "この食べ物は日本で作られていますか。" },
+                { en: "The room will be cleaned tomorrow.", ja: "その部屋は明日掃除されるでしょう。" }, { en: "I was surprised at the news.", ja: "私はそのニュースに驚きました。" },
+                { en: "He was killed in the war.", ja: "彼は戦争で亡くなりました。" }, { en: "The work must be finished by noon.", ja: "その仕事は正午までに終えられなければなりません。" },
+                { en: "I was caught in a heavy rain.", ja: "私は激しい雨に遭いました。" }, { en: "He is known to everyone.", ja: "彼は皆に知られています。" },
+                { en: "The window was broken by the wind.", ja: "その窓は風によって割られました。" }, { en: "I was invited to her party.", ja: "私は彼女のパーティーに招待されました。" },
+                { en: "What is this tool used for?", ja: "この道具は何に使われていますか。" }, { en: "The old painting was found.", ja: "その古い絵画は見つけられました。" },
+                { en: "She was given a beautiful ring.", ja: "彼女は美しい指輪を贈られました。" }, { en: "The problem was discussed.", ja: "その問題は議論されました。" },
+                { en: "He is satisfied with his new job.", ja: "彼は新しい仕事に満足しています。" }, { en: "The stadium is surrounded by trees.", ja: "そのスタジアムは木々に囲まれています。" },
+                { en: "The rumor is believed to be true.", ja: "その噂は本当だと信じられています。" }, { en: "I was disappointed with the result.", ja: "私はその結果にがっかりしました。" }
+            ],
+            "パターン9：「誰が(S)」「する(V)」（関係代名詞・分詞・比較・仮定法）": [
+                { en: "This is a pen which was given by him.", ja: "これは彼にもらったペンです。" }, { en: "He is a man who helped me.", ja: "彼は私を助けてくれた人です。" },
+                { en: "The book that I read was interesting.", ja: "私が読んだその本は面白かったです。" }, { en: "I have a friend whose father is a doctor.", ja: "私には父親が医者である友達がいます。" },
+                { en: "The boy running there is my brother.", ja: "あそこで走っている少年は私の弟です。" }, { en: "I found a coin dropped on the street.", ja: "私は通りに落ちているコインを見つけました。" },
+                { en: "She is taller than I am.", ja: "彼女は私よりも背が高いです。" }, { en: "This is the most popular song.", ja: "これは最も人気のある歌です。" },
+                { en: "If I were a bird, I would fly to you.", ja: "もし私が鳥なら、あなたのもとへ飛んでいくのに。" }, { en: "I wish I knew the answer.", ja: "その答えを知っていればいいのになあ。" },
+                { en: "The girl standing by the window is my sister.", ja: "窓のそばに立っている少女は私の妹です。" }, { en: "This is the city where I was born.", ja: "ここは私が生まれた街です。" },
+                { en: "The time when I met her was five years ago.", ja: "私が彼女に会ったのは5年前です。" }, { en: "This computer is more expensive than that one.", ja: "このコンピューターはあれよりも高価です。" },
+                { en: "He is as strong as his father.", ja: "彼は彼の父と同じくらい強いです。" }, { en: "I have nothing to say.", ja: "私には言うべきことが何もありません。" },
+                { en: "This is the best movie I have ever seen.", ja: "これは私が今までに見た中で最高の映画です。" }, { en: "I like summer the most.", ja: "私は夏が一番好きです。" },
+                { en: "If I had enough money, I could buy the car.", ja: "もし私にお金が十分にあれば、その車を買うことができるのに。" }, { en: "He talked as if he knew everything.", ja: "彼はまるで全てを知っているかのように話しました。" }
+            ]
         }
-    } else if (screenId === 'game') {
-        elements.game.classList.remove('hidden');
-    } else if (screenId === 'result') {
-        elements.result.classList.remove('hidden');
-        displayResult();
-    }
-}
-
-
-/**
- * モードを選択し、コース選択UIを表示する
- * @param {('normal'|'instant')} mode - 選択されたモード
- */
-function selectMode(mode) {
-    GAME_STATE.currentMode = mode;
-    const modeName = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
-    
-    elements.selectedModeDisplay.textContent = modeName;
-    elements.currentModeDisplay.textContent = modeName;
-
-    // モード選択ボタンを非アクティブ化/アクティブ化
-    $('btn-normal').classList.remove('bg-indigo-700');
-    $('btn-instant').classList.remove('bg-purple-700');
-    
-    if (mode === 'normal') {
-        $('btn-normal').classList.add('bg-indigo-700');
-    } else {
-        $('btn-instant').classList.add('bg-purple-700');
-    }
-
-    showCourseSelection();
-}
-
-function showCourseSelection() {
-    elements.courseSelectionTitle.classList.remove('hidden');
-    elements.courseSelectionContainer.classList.remove('hidden');
-    renderHomeMenu();
-}
-
-function hideCourseSelection() {
-    elements.courseSelectionTitle.classList.add('hidden');
-    elements.courseSelectionContainer.classList.add('hidden');
-}
-
-/**
- * コース選択ボタンを作成するヘルパー関数
- */
-function createCourseButton(session, courseName, buttonText) {
-    const button = document.createElement('button');
-    button.className = 'w-full px-4 py-3 text-left bg-indigo-100 text-indigo-800 rounded-lg font-semibold hover:bg-indigo-200 transition-colors shadow-sm';
-    button.textContent = buttonText;
-    button.onclick = () => {
-        startGame(GAME_STATE.currentMode, session, courseName);
     };
-    return button;
-}
 
-/**
- * ホームメニューのコース選択ボタンを生成する
- */
-function renderHomeMenu() {
-    elements.nounCourses.innerHTML = '';
-    elements.verbCourses.innerHTML = '';
-    elements.sentenceCourses.innerHTML = ''; // 英文コースセッションの初期化
 
-    // 普通名詞・一般動詞セッションのレンダリング
-    for (const session in WORD_DATA) {
-        let targetElement;
+    // --- グローバル変数とDOM要素 ---
+    const elements = {
+        modeSelection: document.getElementById('mode-selection'),
+        homeMenu: document.getElementById('home-menu'),
+        courseMenu: document.getElementById('course-menu'),
+        gamePlay: document.getElementById('game-play'),
+        modeTitle: document.getElementById('mode-title'),
+        sessionButtons: document.getElementById('session-buttons'),
+        courseButtons: document.getElementById('course-buttons'),
+        sessionTitle: document.getElementById('session-title'),
+        wordDisplay: document.getElementById('word-display'),
+        wordMeaning: document.getElementById('word-meaning'),
+        typingInput: document.getElementById('typing-input'),
+        timer: document.getElementById('timer'),
+        score: document.getElementById('score'),
+        currentCourse: document.getElementById('current-course'),
+        nextButton: document.getElementById('next-button'),
+        endButton: document.getElementById('end-button'),
+        endModal: document.getElementById('end-modal'),
+        finalScore: document.getElementById('final-score'),
+        finalTotalTyped: document.getElementById('final-total-typed'),
+        messageModal: document.getElementById('message-modal'),
+        modalMessage: document.getElementById('modal-message')
+    };
+
+    let game = {
+        mode: null,          // 'normal' or 'instant'
+        sessionName: null,   // "普通名詞セッション" など
+        courseName: null,    // "Level 1 (初級)" など
+        data: [],            // 現在のコースの問題リスト
+        currentProblemIndex: 0,
+        currentWord: '',     // タイピング対象の英文
+        currentMeaning: '',  // 和訳
+        currentCharIndex: 0,
+        score: 0,
+        totalTyped: 0,       // 総タイプ数
+        timeLeft: 60,
+        timerInterval: null,
+        isGameRunning: false,
+        hasMistyped: false,   // 現在の問題で既にペナルティを受けたか
+    };
+
+
+    // --- ユーティリティ関数 ---
+
+    /**
+     * メッセージモーダルを表示します。
+     * @param {string} message - 表示するメッセージ
+     */
+    function showMessageModal(message) {
+        elements.modalMessage.textContent = message;
+        elements.messageModal.classList.remove('hidden');
+        elements.messageModal.classList.add('flex');
+    }
+
+    /**
+     * メッセージモーダルを非表示にします。
+     */
+    function hideMessageModal() {
+        elements.messageModal.classList.remove('flex');
+        elements.messageModal.classList.add('hidden');
+    }
+
+    /**
+     * 配列をシャッフルします (Fisher-Yatesアルゴリズム)。
+     * @param {Array<any>} array - シャッフルする配列
+     * @returns {Array<any>} シャッフルされた配列
+     */
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+
+    // --- UI切り替え ---
+
+    /**
+     * 全ての画面を非表示にします。
+     */
+    function hideAllScreens() {
+        Object.values(elements).forEach(el => {
+            if (el.id && ['mode-selection', 'home-menu', 'course-menu', 'game-play'].includes(el.id)) {
+                el.classList.add('hidden');
+            }
+        });
+    }
+
+    /**
+     * モード選択画面を表示します。
+     */
+    function showModeSelection() {
+        hideAllScreens();
+        elements.modeSelection.classList.remove('hidden');
+        game.isGameRunning = false;
+        if (game.timerInterval) clearInterval(game.timerInterval);
+    }
+
+    /**
+     * ホームメニュー（セッション選択）を表示します。
+     */
+    function showHomeMenu() {
+        hideAllScreens();
+        elements.homeMenu.classList.remove('hidden');
+        elements.modeTitle.textContent = game.mode === 'normal' ? "通常モード (スペル表示)" : "瞬間英作文モード (スペル非表示)";
+        renderSessionButtons();
         
-        if (session === "普通名詞セッション") {
-            targetElement = elements.nounCourses;
-        } else if (session === "一般動詞セッション") {
-            targetElement = elements.verbCourses;
-        } else if (session === "英文コースセッション") {
-            targetElement = elements.sentenceCourses;
-        } else {
-            continue;
-        }
-
-        for (const courseName in WORD_DATA[session]) {
-            // パターンコース名が長いため、スタイルを調整できますが、今回はそのまま表示します。
-            const button = createCourseButton(session, courseName, courseName);
-            targetElement.appendChild(button);
-        }
-    }
-}
-
-
-// =========================================================
-// 5. ゲームロジック
-// =========================================================
-
-/**
- * コースを選択し、ゲーム状態を初期化してゲームを開始する
- * @param {string} mode - 'normal' or 'instant'
- * @param {string} sessionName 
- * @param {string} courseName 
- */
-function startGame(mode, sessionName, courseName) {
-    // 固定文リストを取得
-    let wordList = [];
-    if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
-        // === 全てのコースは固定データを使用 ===
-        // データをシャッフルして、ランダムな出題順にする
-        wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); 
-    } else {
-        console.error("Invalid course selection:", sessionName, courseName);
-        return;
+        // モーダルを閉じる
+        elements.endModal.classList.add('hidden');
+        elements.endModal.classList.remove('flex');
     }
 
-    // ゲーム状態のリセット
-    GAME_STATE.currentMode = mode;
-    GAME_STATE.selectedSession = sessionName;
-    GAME_STATE.selectedCourse = courseName;
-    GAME_STATE.wordList = wordList;
-    GAME_STATE.currentWordIndex = 0;
-    GAME_STATE.score = 0;
-    GAME_STATE.mistakeCount = 0;
-    GAME_STATE.timer = 60;
-    GAME_STATE.isGameStarted = false;
-    GAME_STATE.isGameOver = false;
-    GAME_STATE.currentWordMistakeFlag = false; 
-
-    clearInterval(GAME_STATE.timerInterval);
-    elements.typingInput.value = '';
-    elements.typingInput.disabled = false; // 入力を有効化
-
-    // UIの初期設定
-    elements.currentModeDisplay.textContent = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
-    // コース表示名を調整
-    const courseDisplayName = `${sessionName} / ${courseName}`;
-    elements.courseDisplay.textContent = courseDisplayName;
-    elements.timer.textContent = GAME_STATE.timer;
-    elements.score.textContent = GAME_STATE.score;
-    elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
-    elements.totalWords.textContent = GAME_STATE.wordList.length;
-
-    // ゲーム開始
-    elements.typingInput.focus();
-    displayCurrentWord();
-    changeScreen('game');
-
-    // 最初の入力でゲームが開始するようにイベントリスナーを設定
-    elements.typingInput.onkeydown = startOnFirstKeydown;
-}
-
-
-/**
- * 最初のキー入力でタイマーをスタートさせる
- */
-function startOnFirstKeydown(event) {
-    if (!GAME_STATE.isGameStarted && !GAME_STATE.isGameOver) {
-        // アルファベットキーかスペースキー、記号などが押されたら開始
-        if (event.key.length === 1 && event.key.match(/^[a-zA-Z\s,.'";:-]$/)) {
-            GAME_STATE.isGameStarted = true;
-            elements.typingInput.onkeydown = null; // イベントを解除
-            startTimer();
-        }
+    /**
+     * コース選択メニューを表示します。
+     */
+    function showCourseMenu(sessionName) {
+        hideAllScreens();
+        elements.courseMenu.classList.remove('hidden');
+        game.sessionName = sessionName;
+        elements.sessionTitle.textContent = sessionName;
+        renderCourseButtons(sessionName);
     }
-}
+
+    /**
+     * ゲームプレイ画面を表示します。
+     */
+    function showGamePlay() {
+        hideAllScreens();
+        elements.gamePlay.classList.remove('hidden');
+        elements.typingInput.focus();
+    }
 
 
-/**
- * タイマーを開始する
- */
-function startTimer() {
-    GAME_STATE.timerInterval = setInterval(() => {
-        if (GAME_STATE.timer <= 0) {
-            clearInterval(GAME_STATE.timerInterval);
-            gameOver();
+    // --- メインロジック ---
+
+    /**
+     * モードを選択し、ホームメニューへ移行します。
+     * @param {string} mode - 'normal' または 'instant'
+     */
+    window.selectMode = function(mode) {
+        game.mode = mode;
+        showHomeMenu();
+    };
+
+    /**
+     * セッションボタンをレンダリングします。
+     */
+    function renderSessionButtons() {
+        elements.sessionButtons.innerHTML = '';
+        Object.keys(WORD_DATA).forEach(sessionName => {
+            const button = document.createElement('button');
+            button.className = 'p-6 bg-green-100 border-2 border-green-500 text-green-800 font-bold rounded-xl shadow-lg hover:bg-green-200 transition duration-150 transform hover:scale-105';
+            button.textContent = sessionName;
+            button.onclick = () => showCourseMenu(sessionName);
+            elements.sessionButtons.appendChild(button);
+        });
+    }
+
+    /**
+     * コースボタンをレンダリングします。
+     * @param {string} sessionName - 現在のセッション名
+     */
+    function renderCourseButtons(sessionName) {
+        elements.courseButtons.innerHTML = '';
+        const courses = WORD_DATA[sessionName];
+        Object.keys(courses).forEach(courseName => {
+            const button = document.createElement('button');
+            button.className = 'p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 font-semibold rounded-lg hover:bg-yellow-200 transition duration-150 transform hover:scale-100';
+            button.textContent = courseName;
+            button.onclick = () => startGame(courseName);
+            elements.courseButtons.appendChild(button);
+        });
+    }
+
+    /**
+     * ゲームを開始します。
+     * @param {string} courseName - 現在のコース名
+     */
+    function startGame(courseName) {
+        game.courseName = courseName;
+        const rawData = WORD_DATA[game.sessionName][courseName];
+        
+        // データをシャッフルして、ゲームデータとして格納
+        game.data = shuffleArray([...rawData]); 
+
+        game.currentProblemIndex = 0;
+        game.score = 0;
+        game.totalTyped = 0;
+        game.timeLeft = 60;
+        game.isGameRunning = true;
+        
+        // UI初期化
+        elements.score.textContent = game.score;
+        elements.timer.textContent = game.timeLeft;
+        elements.currentCourse.textContent = courseName;
+        elements.typingInput.value = '';
+        elements.typingInput.disabled = false;
+        elements.nextButton.disabled = true;
+
+        showGamePlay();
+        loadNextProblem();
+        startTimer();
+        elements.typingInput.focus();
+    }
+
+    /**
+     * タイマーを開始します。
+     */
+    function startTimer() {
+        if (game.timerInterval) clearInterval(game.timerInterval);
+
+        game.timerInterval = setInterval(() => {
+            if (!game.isGameRunning) {
+                clearInterval(game.timerInterval);
+                return;
+            }
+            
+            game.timeLeft--;
+            elements.timer.textContent = game.timeLeft;
+
+            if (game.timeLeft <= 10) {
+                elements.timer.classList.add('text-red-600', 'animate-pulse');
+            } else {
+                elements.timer.classList.remove('text-red-600', 'animate-pulse');
+            }
+
+            if (game.timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    /**
+     * ゲームを終了し、結果を表示します。
+     */
+    function endGame() {
+        game.isGameRunning = false;
+        clearInterval(game.timerInterval);
+        elements.typingInput.disabled = true;
+        elements.nextButton.disabled = true;
+
+        elements.finalScore.textContent = game.score;
+        elements.finalTotalTyped.textContent = game.totalTyped;
+        elements.endModal.classList.add('flex');
+        elements.endModal.classList.remove('hidden');
+    }
+
+    /**
+     * 次の問題をロードし、UIを更新します。
+     */
+    function loadNextProblem() {
+        if (game.currentProblemIndex >= game.data.length) {
+            // 全問終了
+            showMessageModal("全問終了しました！");
+            endGame();
             return;
         }
-        GAME_STATE.timer--;
-        elements.timer.textContent = GAME_STATE.timer;
-    }, 1000);
-}
 
-
-/**
- * 現在の単語を画面に表示する
- */
-function displayCurrentWord() {
-    if (GAME_STATE.currentWordIndex >= GAME_STATE.wordList.length) {
-        gameOver();
-        return;
-    }
-
-    const currentWordData = GAME_STATE.wordList[GAME_STATE.currentWordIndex];
-    
-    // 新しい単語/文が始まったらペナルティフラグをリセット
-    GAME_STATE.currentWordMistakeFlag = false; 
-
-    // UIをリセット
-    elements.typingInput.value = '';
-    elements.typingInput.focus();
-    elements.wordMeaning.textContent = currentWordData.meaning;
-    elements.wordProgress.textContent = `${GAME_STATE.currentWordIndex} / ${GAME_STATE.wordList.length}`;
-    elements.feedbackMessage.textContent = '';
-    
-    // モードに応じて単語の表示を初期化
-    if (GAME_STATE.currentMode === 'normal') {
-        // 通常モード: 最初の文字をハイライトして、残りの文字を表示
-        elements.wordDisplay.innerHTML = `<span class="current-char">${currentWordData.word.charAt(0)}</span>${currentWordData.word.substring(1)}`;
-    } else {
-        // 瞬間英作文モード: 全てをブランクで表示 (最初の文字をハイライト)
-        let blanks = '';
-        for (let i = 0; i < currentWordData.word.length; i++) {
-            if (i === 0) {
-                // 最初の文字はブランクに見せるが、ハイライトする
-                blanks += `<span class="current-char">${currentWordData.word[i] === ' ' ? '&nbsp;' : '_'}</span>`; 
-            } else if (currentWordData.word[i] === ' ') {
-                blanks += `<span class="blank-char">&nbsp;</span>`; // スペースはそのまま
-            } else {
-                blanks += `<span class="blank-char">_</span>`;
-            }
-        }
-        elements.wordDisplay.innerHTML = `<p class="instant-mode-text">${blanks}</p>`;
-    }
-}
-
-
-/**
- * ユーザーのキー入力を処理する
- */
-elements.typingInput.addEventListener('input', () => {
-    if (GAME_STATE.isGameOver || !GAME_STATE.isGameStarted) return;
-    
-    const currentWord = GAME_STATE.wordList[GAME_STATE.currentWordIndex].word;
-    let typedText = elements.typingInput.value;
-    let isMistake = false;
-
-    // リアルタイムでの文字色ハイライトとミス判定
-    let highlightedWord = '';
-    
-    for (let i = 0; i < currentWord.length; i++) {
-        let char = currentWord[i];
+        const problem = game.data[game.currentProblemIndex];
         
-        if (i < typedText.length) {
-            if (char === typedText[i]) {
-                // 正しい文字
-                highlightedWord += `<span class="correct">${char}</span>`;
-            } else {
-                // 間違い検出
-                if (GAME_STATE.currentMode === 'normal') {
-                    // 通常モード: 間違った文字を赤くハイライト
-                    highlightedWord += `<span class="incorrect">${char}</span>`;
-                } else {
-                    // 瞬間英作文モード: 間違った文字を赤くハイライト（フィードバックのため）
-                    highlightedWord += `<span class="incorrect">${char}</span>`;
+        game.currentWord = problem.en;
+        game.currentMeaning = problem.ja;
+        game.currentCharIndex = 0;
+        game.hasMistyped = false; // ペナルティフラグをリセット
+        
+        elements.typingInput.value = '';
+        elements.typingInput.disabled = false;
+        elements.nextButton.disabled = true;
+        
+        // 和訳を表示
+        elements.wordMeaning.textContent = game.currentMeaning;
+
+        // 英単語/英文をレンダリング
+        renderWordDisplay();
+    }
+
+    /**
+     * 英単語/英文表示エリアをレンダリングします。
+     */
+    function renderWordDisplay() {
+        elements.wordDisplay.innerHTML = '';
+        const chars = game.currentWord.split('');
+
+        chars.forEach((char, index) => {
+            const span = document.createElement('span');
+            span.textContent = char;
+            span.id = `char-${index}`;
+
+            // 瞬間英作文モードでは、初期状態でスペルを非表示
+            if (game.mode === 'instant' && index >= game.currentCharIndex) {
+                span.classList.add('hidden-spell');
+            }
+
+            // 現在入力すべき文字の処理
+            if (index === game.currentCharIndex) {
+                span.classList.add('current');
+                if (game.mode === 'instant') {
+                    span.classList.add('instant-current');
+                    span.classList.remove('hidden-spell');
                 }
-                isMistake = true;
-                break; // 最初の間違いでループを中断
             }
-        } else if (i === typedText.length) {
-            // 次に入力すべき文字 (現在カーソルがある位置)
-            if (GAME_STATE.currentMode === 'normal') {
-                highlightedWord += `<span class="current-char">${char}</span>`;
-            } else {
-                // 瞬間英作文モード: ブランク（_）で表示
-                highlightedWord += `<span class="current-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
-            }
-        } else {
-            // 未入力の文字
-            if (GAME_STATE.currentMode === 'normal') {
-                highlightedWord += char;
-            } else {
-                 // 瞬間英作文モード: ブランク（_）で表示
-                highlightedWord += `<span class="blank-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
-            }
-        }
-    }
-    
-    // 間違いが検出された場合、未入力部分の表示を調整
-    if (isMistake && typedText.length < currentWord.length) {
-        let remaining = currentWord.substring(typedText.length + 1); // 間違えた文字の次から
-        
-        for (let i = 0; i < remaining.length; i++) {
-            let char = remaining[i];
-            if (GAME_STATE.currentMode === 'normal') {
-                 highlightedWord += char;
-            } else {
-                highlightedWord += `<span class="blank-char">${char === ' ' ? '&nbsp;' : '_'}</span>`;
-            }
-        }
-    }
-
-
-    // ハイライト表示の更新
-    // 瞬間英作文モードでは、正しい入力中のみブランクを埋めるように見せる
-    if (GAME_STATE.currentMode === 'instant' && !isMistake) {
-        elements.wordDisplay.innerHTML = `<p class="instant-mode-text">${highlightedWord}</p>`;
-    } else {
-        elements.wordDisplay.innerHTML = highlightedWord;
-    }
-
-
-    if (isMistake) {
-        // === ミスタイプ時のペナルティ処理 ===
-        
-        // 1単語内でまだペナルティを適用していない場合のみ実行
-        if (!GAME_STATE.currentWordMistakeFlag) {
-            GAME_STATE.mistakeCount++;
-            elements.mistakeCount.textContent = GAME_STATE.mistakeCount;
-            GAME_STATE.timer = Math.max(0, GAME_STATE.timer - DURATION_PENALTY); // 時間をマイナス5秒
-            elements.timer.textContent = GAME_STATE.timer;
-            elements.feedbackMessage.innerHTML = `<span class="text-red-500 font-bold">ミス！ -${DURATION_PENALTY}秒ペナルティ (修正して続行)</span>`;
             
-            // ペナルティフラグを立てる
-            GAME_STATE.currentWordMistakeFlag = true;
+            // 既に正しく入力された文字の処理
+            if (index < game.currentCharIndex) {
+                 span.classList.add('correct');
+                 if (game.mode === 'instant') {
+                    span.classList.add('instant-correct');
+                    span.classList.remove('hidden-spell');
+                }
+            }
 
-            if (GAME_STATE.timer <= 0) {
-                clearInterval(GAME_STATE.timerInterval);
-                gameOver();
-            }
-        }
+            elements.wordDisplay.appendChild(span);
+        });
+    }
+
+    /**
+     * 入力イベントを処理し、文字の判定を行います。
+     * @param {string} inputChar - ユーザーが入力した文字
+     */
+    function handleInput(inputChar) {
+        if (!game.isGameRunning) return;
         
-    } else {
-        elements.feedbackMessage.textContent = '';
-        
-        if (typedText.length === currentWord.length) {
-            // === 単語完了時の処理 ===
-            if (typedText === currentWord) {
-                GAME_STATE.score += currentWord.length * POINTS_PER_CHARACTER;
-                elements.score.textContent = GAME_STATE.score;
-                elements.feedbackMessage.innerHTML = `<span class="text-green-500 font-bold">PERFECT! +${currentWord.length * POINTS_PER_CHARACTER}ポイント</span>`;
-                
-                // 次の単語へ
-                GAME_STATE.currentWordIndex++;
-                
-                // わずかな遅延後、次の単語を表示
-                setTimeout(() => {
-                    displayCurrentWord();
-                }, 500);
+        const targetChar = game.currentWord[game.currentCharIndex];
+        const currentCharElement = document.getElementById(`char-${game.currentCharIndex}`);
+
+        if (!currentCharElement) return;
+
+        if (inputChar === targetChar) {
+            // 正しい入力
+            currentCharElement.classList.remove('incorrect', 'current', 'hidden-spell', 'instant-current');
+            currentCharElement.classList.add('correct');
+            if (game.mode === 'instant') {
+                currentCharElement.classList.add('instant-correct');
             }
+            game.currentCharIndex++;
+            game.totalTyped++;
+            
+            // 次の文字へ
+            if (game.currentCharIndex < game.currentWord.length) {
+                const nextCharElement = document.getElementById(`char-${game.currentCharIndex}`);
+                nextCharElement.classList.add('current');
+                if (game.mode === 'instant') {
+                    nextCharElement.classList.add('instant-current');
+                    nextCharElement.classList.remove('hidden-spell'); // スペルを解除
+                }
+            } else {
+                // 文の完了
+                finishProblem();
+            }
+
+        } else {
+            // 間違った入力
+            if (!game.hasMistyped) {
+                game.timeLeft = Math.max(0, game.timeLeft - 5); // 5秒ペナルティ
+                elements.timer.textContent = game.timeLeft;
+                game.hasMistyped = true;
+            }
+            
+            // 赤文字でフィードバック
+            currentCharElement.classList.remove('correct', 'current', 'instant-current');
+            currentCharElement.classList.add('incorrect');
+            
+            // 間違いがあってもインデックスは進めない（打ち直しを強制）
         }
     }
-});
-
-
-/**
- * ゲームオーバー処理
- */
-function gameOver() {
-    if (GAME_STATE.isGameOver) return;
     
-    GAME_STATE.isGameOver = true;
-    GAME_STATE.isGameStarted = false;
-    clearInterval(GAME_STATE.timerInterval);
-    elements.typingInput.disabled = true;
-
-    changeScreen('result');
-}
-
-/**
- * 結果画面の表示を更新する
- */
-function displayResult() {
-    elements.finalScore.textContent = GAME_STATE.score;
-    elements.completedWords.textContent = GAME_STATE.currentWordIndex;
-    elements.totalWords.textContent = GAME_STATE.wordList.length;
-}
+    /**
+     * 問題が完了したときの処理を行います。
+     */
+    function finishProblem() {
+        game.score++;
+        elements.score.textContent = game.score;
+        game.currentProblemIndex++;
+        
+        // 入力を無効化し、次のボタンを有効化
+        elements.typingInput.disabled = true;
+        elements.nextButton.disabled = false;
+    }
 
 
-// =========================================================
-// 6. 初期化
-// =========================================================
+    // --- イベントリスナー ---
 
-// ページロード時にホーム画面を表示
-window.onload = function() {
-    // 初期状態ではモード選択のみ表示
-    hideCourseSelection();
-    changeScreen('home');
-};
+    // 入力フィールド（キーダウンイベントで処理を行う）
+    elements.typingInput.addEventListener('keydown', (e) => {
+        if (!game.isGameRunning || elements.typingInput.disabled) {
+            e.preventDefault();
+            return;
+        }
+
+        const inputChar = e.key;
+        
+        // Backspace処理
+        if (inputChar === 'Backspace' && game.currentCharIndex > 0) {
+            e.preventDefault(); // デフォルトのBackSpace動作を抑制
+            
+            // 現在の文字をリセット（間違っていた場合の色を解除）
+            const currentCharElement = document.getElementById(`char-${game.currentCharIndex}`);
+            if (currentCharElement) {
+                currentCharElement.classList.remove('incorrect', 'current', 'instant-current');
+                if (game.mode === 'instant') {
+                    currentCharElement.classList.add('hidden-spell');
+                }
+            }
+
+            game.currentCharIndex--;
+
+            // 戻った文字をハイライトし直し、正解マークを解除
+            const prevCharElement = document.getElementById(`char-${game.currentCharIndex}`);
+            if (prevCharElement) {
+                prevCharElement.classList.remove('correct', 'incorrect', 'instant-correct');
+                prevCharElement.classList.add('current');
+                if (game.mode === 'instant') {
+                    prevCharElement.classList.add('instant-current');
+                    prevCharElement.classList.remove('hidden-spell');
+                }
+            }
+
+            // 入力フィールドのテキストを連動させる
+            elements.typingInput.value = game.currentWord.substring(0, game.currentCharIndex);
+
+        } else if (inputChar.length === 1 || inputChar === ' ') {
+            // 通常の文字入力 (スペースを含む)
+            e.preventDefault(); // デフォルトの入力をキャンセル
+            handleInput(inputChar);
+        } else if (inputChar === 'Enter') {
+             // Enterキーは無視
+            e.preventDefault();
+        }
+    });
+
+    // 次の問題ボタン
+    elements.nextButton.addEventListener('click', loadNextProblem);
+    
+    // 終了ボタン
+    elements.endButton.addEventListener('click', endGame);
+
+    // 初期化
+    showModeSelection();
 
 </script>
+</body>
+</html>
