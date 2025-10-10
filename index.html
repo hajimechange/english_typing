@@ -107,7 +107,7 @@
                     <div id="verb-courses" class="space-y-2"></div>
                 </div>
                 
-                <!-- 英文コースセッション -->
+                <!-- 英文コースセッション (CSVデータに基づく固定文) -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション</h3>
                     <div id="sentence-courses" class="space-y-2">
@@ -189,10 +189,11 @@
 
 <script>
 // =========================================================
-// 1. データ定義 (英単語 + 英文 全360問) - スタンダードコース用
+// 1. データ定義 (英単語 + 英文 全てのコースを固定文で構成)
 // =========================================================
 
 const WORD_DATA = {
+    // スタンダードな単語セッションはそのまま維持
     "普通名詞セッション": {
         "動物": [
             { word: "dog", meaning: "犬" }, { word: "cat", meaning: "猫" }, { word: "bird", meaning: "鳥" }, { word: "fish", meaning: "魚" }, { word: "horse", meaning: "馬" },
@@ -275,241 +276,45 @@ const WORD_DATA = {
             { word: "hit", meaning: "打つ" }, { word: "end", meaning: "終わる" }, { word: "save", meaning: "救う" }, { word: "drive", meaning: "運転する" }, { word: "remain", meaning: "残る" }
         ]
     },
-    // === スタンダード英文コースセッション (固定文) ===
+    
+    // === 英文コースセッション (CSVデータに基づく固定文) ===
+    // テンプレート生成は廃止し、全て固定文に置き換えます。
     "英文コースセッション": {
-        "レベル1": [
-            { word: "I am a student.", meaning: "私は生徒です。" },
-            { word: "This is my pen.", meaning: "これは私のペンです。" },
-            { word: "He is not in Class 1.", meaning: "彼は1組ではありません。" },
-            { word: "Do you like apples?", meaning: "あなたはりんごが好きですか。" },
-            { word: "Yes, I do.", meaning: "はい、好きです。" },
-            { word: "I do not eat meat.", meaning: "私は肉を食べません。" },
-            { word: "She has a dog.", meaning: "彼女は犬を飼っています。" },
-            { word: "Can you make soup?", meaning: "あなたはスープを作れますか。" },
-            { word: "I cannot run fast.", meaning: "私は速く走れません。" },
-            { word: "Please close the door.", meaning: "ドアを閉めてください。" },
-            { word: "Don't worry about it.", meaning: "それについて心配しないで。" },
-            { word: "What is your name?", meaning: "あなたの名前は何ですか。" },
-            { word: "Where is the clock?", meaning: "その時計はどこですか。" },
-            { word: "I walk to school.", meaning: "私は歩いて学校に行きます。" },
-            { word: "How many cats do you have?", meaning: "あなたは猫を何匹飼っていますか。" },
-            { word: "It is three o'clock.", meaning: "3時です。" },
-            { word: "My favorite color is green.", meaning: "私の好きな色は緑です。" },
-            { word: "He is on the soccer team.", meaning: "彼はサッカー部に入っています。" },
-            { word: "Are you happy now?", meaning: "あなたは今、幸せですか。" },
-            { word: "Look at that big bird.", meaning: "あの大きな鳥を見て。" }
+        // CSVデータから抽出した「パターン１」の文
+        "パターン１：「誰が(S)」「する(V)」（S + V / S + V + C）": [
+            { word: "I am Edward Trout.", meaning: "私はエドワード・トラウトです。" },
+            { word: "Are you an anime fan?", meaning: "あなたはアニメのファンですか。" },
+            { word: "Be brave.", meaning: "勇気を出して。" },
+            { word: "Don't worry.", meaning: "心配しないで。" },
+            { word: "The children look happy.", meaning: "子供たちは幸せそうに見えます。" },
+            { word: "Talking with him was fun.", meaning: "彼と話すことは楽しかったです。" },
+            { word: "My sister sings well.", meaning: "私の姉は歌が上手です。" },
+            { word: "The sky is blue.", meaning: "空は青いです。" },
+            { word: "She became a teacher.", meaning: "彼女は先生になりました。" },
+            { word: "We work hard.", meaning: "私たちは一生懸命働きます。" },
+            { word: "The door opened.", meaning: "ドアが開きました。" },
+            { word: "The food tastes salty.", meaning: "その食べ物は塩辛い味がします。" },
+            { word: "Everyone smiled.", meaning: "みんなが微笑みました。" }
         ],
-        "レベル2": [
-            { word: "We enjoyed watching TV yesterday.", meaning: "私たちは昨日テレビを見て楽しみました。" },
-            { word: "He lives near the station.", meaning: "彼は駅の近くに住んでいます。" },
-            { word: "Did you eat rice?", meaning: "あなたはご飯を食べましたか。" },
-            { word: "No, I did not.", meaning: "いいえ、食べませんでした。" },
-            { word: "She was nervous then.", meaning: "彼女はそのとき緊張していました。" },
-            { word: "I did not buy the book.", meaning: "私はその本を買いませんでした。" },
-            { word: "She is teaching English now.", meaning: "彼女は今、英語を教えています。" },
-            { word: "What are you thinking?", meaning: "あなたは何を考えていますか。" },
-            { word: "He does not play tennis.", meaning: "彼はテニスをしません。" },
-            { word: "Does she like coffee?", meaning: "彼女はコーヒーが好きですか。" },
-            { word: "There is a big bear in the zoo.", meaning: "動物園には大きな熊がいます。" },
-            { word: "I will go to Canada tomorrow.", meaning: "私は明日カナダへ行きます。" },
-            { word: "I am going to see him.", meaning: "私は彼に会うつもりです。" },
-            { word: "When do you usually study?", meaning: "あなたは普段いつ勉強しますか。" },
-            { word: "Which do you want, red or blue?", meaning: "赤と青、どちらが欲しいですか。" },
-            { word: "I was reading a book then.", meaning: "私はそのとき本を読んでいました。" },
-            { word: "He gave me an apple.", meaning: "彼は私にりんごを一つくれました。" },
-            { word: "They call this building a tower.", meaning: "彼らはこの建物を塔と呼びます。" },
-            { word: "I must save the water.", meaning: "私は水を節約しなければなりません。" },
-            { word: "We have to speak slowly.", meaning: "私たちはゆっくり話さなければなりません。" }
-        ],
-        "レベル3": [
-            { word: "I want to buy a new watch.", meaning: "私は新しい時計を買いたいです。" },
-            { word: "It is easy to learn English.", meaning: "英語を学ぶことは簡単です。" },
-            { word: "I use the internet to find books.", meaning: "私は本を見つけるためにインターネットを使います。" },
-            { word: "I have a lot of homework to do.", meaning: "私にはするべき多くの宿題があります。" },
-            { word: "She is happy to see you.", meaning: "彼女はあなたに会えて嬉しいです。" },
-            { word: "They enjoy playing soccer.", meaning: "彼らはサッカーをすることを楽しんでいます。" },
-            { word: "We stopped running there.", meaning: "私たちはそこで走るのをやめました。" },
-            { word: "I like coffee, but she likes tea.", meaning: "私はコーヒーが好きですが、彼女は紅茶が好きです。" },
-            { word: "When I am sad, I listen to music.", meaning: "私は悲しいとき、音楽を聴きます。" },
-            { word: "If you are free, please come here.", meaning: "もしあなたが暇なら、ここに来てください。" },
-            { word: "I came home because I was hungry.", meaning: "お腹が空いていたので、家に帰りました。" },
-            { word: "I think that he is honest.", meaning: "私は彼が正直だと思います。" },
-            { word: "She wants me to help her.", meaning: "彼女は私に彼女を手伝ってほしいです。" },
-            { word: "I know how to make pizza.", meaning: "私はピザの作り方を知っています。" },
-            { word: "It is important for us to learn history.", meaning: "私たちが歴史を学ぶことは重要です。" },
-            { word: "They decided to move to Tokyo.", meaning: "彼らは東京に引っ越すことを決めました。" },
-            { word: "I finished writing the report.", meaning: "私はレポートを書き終えました。" },
-            { word: "You do not have to wash the car.", meaning: "あなたは車を洗う必要はありません。" },
-            { word: "She must not forget the bag.", meaning: "彼女はそのバッグを忘れてはいけません。" },
-            { word: "We started learning French.", meaning: "私たちはフランス語を学び始めました。" }
-        ],
-        "レベル4": [
-            { word: "This book is older than that one.", meaning: "この本はあの本よりも古いです。" },
-            { word: "He runs faster than I do.", meaning: "彼は私よりも速く走ります。" },
-            { word: "This sport is more popular than tennis.", meaning: "このスポーツはテニスよりも人気があります。" },
-            { word: "My bag is the biggest of all.", meaning: "私のバッグは全ての中でいちばん大きいです。" },
-            { word: "The dog is the most famous animal.", meaning: "その犬は最も有名な動物です。" },
-            { word: "Japan is as beautiful as Canada.", meaning: "日本はカナダと同じくらい美しいです。" },
-            { word: "The Taj Mahal is loved by many people.", meaning: "タージ・マハルは多くの人々に愛されています。" },
-            { word: "This song was written by him.", meaning: "この歌は彼によって書かれました。" },
-            { word: "English is spoken here.", meaning: "ここからは英語が話されています。" },
-            { word: "The new school will be built next year.", meaning: "新しい学校は来年建てられるでしょう。" },
-            { word: "Was this camera made in China?", meaning: "このカメラは中国で作られましたか。" },
-            { word: "What is this machine called?", meaning: "この機械は何と呼ばれていますか。" },
-            { word: "I wish I were a dolphin.", meaning: "私はイルカであればいいのになあ。" },
-            { word: "He seems sad today.", meaning: "彼は今日悲しそうに見えます。" },
-            { word: "Don't forget to buy milk.", meaning: "牛乳を買うのを忘れないで。" },
-            { word: "Please tell me about the weather.", meaning: "私に天気について教えてください。" },
-            { word: "I look forward to seeing you.", meaning: "私はあなたに会えるのを楽しみにしています。" },
-            { word: "I will show you how to use it.", meaning: "私はあなたにその使い方を見せましょう。" },
-            { word: "She is looking for her lost cat.", meaning: "彼女は迷子の猫を探しています。" },
-            { word: "They were eating apples then.", meaning: "彼らはそのときりんごを食べていました。" }
-        ],
-        "レベル5": [
-            { word: "I have watched this movie twice.", meaning: "私はこの映画を2回見たことがあります。" },
-            { word: "Have you ever been to the sea?", meaning: "あなたはこれまでに海へ行ったことがありますか。" },
-            { word: "I have just finished my homework.", meaning: "私はちょうど宿題を終えたところです。" },
-            { word: "She has lived here for ten years.", meaning: "彼女はここに10年間住んでいます。" },
-            { word: "He has been playing the game since 4.", meaning: "彼は4時からずっとそのゲームをしています。" },
-            { word: "Tell me what you want.", meaning: "あなたが何を欲しいか私に教えてください。" },
-            { word: "I know where he lives.", meaning: "私は彼がどこに住んでいるか知っています。" },
-            { word: "This is the pen that I bought.", meaning: "これは私が買ったペンです。" },
-            { word: "He is a man who helped me.", meaning: "彼は私を助けてくれた人です。" },
-            { word: "I found a picture which makes me happy.", meaning: "私は私を幸せにする写真を見つけました。" },
-            { word: "The boy running there is my friend.", meaning: "あそこで走っている少年は私の友達です。" },
-            { word: "We saw a cat sleeping on the chair.", meaning: "私たちは椅子の上で眠っている猫を見ました。" },
-            { word: "It is important for us to save time.", meaning: "私たちが時間を節約することは重要です。" },
-            { word: "I want everyone to know the truth.", meaning: "私は全ての人に真実を知ってほしいです。" },
-            { word: "I am sure that we can win.", meaning: "私は私たちが勝てると確信しています。" },
-            { word: "He bought me a new camera.", meaning: "彼は私に新しいカメラを買ってくれました。" },
-            { word: "What a beautiful flower this is!", meaning: "これはなんて美しい花なのでしょう！" },
-            { word: "I wish I had more time to play.", meaning: "遊ぶ時間があればいいのになあ。" },
-            { word: "If I were you, I would try again.", meaning: "もし私があなたなら、もう一度挑戦するでしょう。" },
-            { word: "Many things that we use every day come from overseas.", meaning: "私たちが毎日目にする多くのものは海外から来ています。" }
+        // CSVデータから抽出した仮定法に関連する文（タイトル未指定のため、構造から命名）
+        "仮定法（If S were / I wish など）": [ 
+            { word: "If I were an animal, I would be a dolphin.", meaning: "もし私が動物なら、イルカになるでしょう。" },
+            { word: "If she were here, she would know what to do.", meaning: "もし彼女がここにいれば、何をすべきかわかるだろうに。" },
+            { word: "He acts as if he were a leader.", meaning: "彼はまるでリーダーであるかのように振る舞います。" },
+            { word: "If it were sunny, we could go hiking.", meaning: "もし晴れていたら、ハイキングに行けるのに。" },
+            { word: "I wish I didn't have to work this weekend.", meaning: "今週末、仕事をしなくて済めばいいのに。" },
+            { word: "What would you do if you won the lottery?", meaning: "もし宝くじに当たったら、何をしますか。" },
+            { word: "If they changed the rule, the game would be better.", meaning: "もし彼らがルールを変えたら、試合はもっとよくなるだろうに。" },
+            { word: "I wish I knew the answer to that question.", meaning: "あの質問の答えを知っていればいいのに。" },
+            { word: "If I spoke French, I could live in Paris.", meaning: "もし私がフランス語を話せたら、パリに住めるのに。" },
+            { word: "She looked as if she hadn't slept for days.", meaning: "彼女はまるで数日間寝ていないかのように見えました。" }
         ]
     }
 };
 
 // =========================================================
-// 2. 構文テンプレートと単語リスト (ハイレベルコース用)
-//    - 語彙の関連性を考慮して再構築
+// 2. 構文テンプレートロジックは削除 (固定文のみ使用のため)
 // =========================================================
-
-// 品詞ごとの単語リスト (Lexicon)
-const LEXICON = {
-    // 1. 主語 (三人称単数情報を含む)
-    PRONOUN_S: [
-        { word: "I", meaning: "私は", singular: false }, 
-        { word: "You", meaning: "あなたは", singular: false }, 
-        { word: "He", meaning: "彼は", singular: true }, 
-        { word: "She", meaning: "彼女は", singular: true },
-        { word: "We", meaning: "私たちは", singular: false }, 
-        { word: "They", meaning: "彼らは", singular: false }
-    ],
-    // 2. Be動詞 (主語によって自動選択されるため、補助データ)
-    BE_VERB: [
-        { word: "am", meaning: "です/いる", subject: "I" },
-        { word: "are", meaning: "です/いる", subject: "You/We/They" },
-        { word: "is", meaning: "です/いる", subject: "He/She" },
-    ],
-    // 3. 一般動詞 (目的語のカテゴリ情報を持つ)
-    V_TRANSITIVE: [
-        { word: "eat", meaning: "食べる", category: "FOOD_DRINK" }, 
-        { word: "drink", meaning: "飲む", category: "FOOD_DRINK" }, 
-        { word: "buy", meaning: "買う", category: "OBJECTS" }, 
-        { word: "read", meaning: "読む", category: "MEDIA" }, 
-        { word: "write", meaning: "書く", category: "MEDIA" },
-        { word: "see", meaning: "見る", category: "MEDIA" }, // 映画、ニュースなどを見る
-        { word: "know", meaning: "知っている", category: "ABSTRACT" },
-        { word: "play", meaning: "する/演奏する", category: "SPORTS_MUSIC" },
-        { word: "speak", meaning: "話す", category: "LANGUAGE" }
-    ],
-    // 4. 形容詞
-    ADJ: [
-        { word: "happy", meaning: "幸せな" }, 
-        { word: "sad", meaning: "悲しい" }, 
-        { word: "big", meaning: "大きな" }, 
-        { word: "small", meaning: "小さな" }, 
-        { word: "good", meaning: "良い" },
-        { word: "new", meaning: "新しい" }
-    ],
-    // 5. 名詞 (Be動詞の補語C用)
-    NOUN_S: [
-        { word: "a student", meaning: "生徒" }, 
-        { word: "a teacher", meaning: "先生" }, 
-        { word: "an engineer", meaning: "エンジニア" }, 
-        { word: "a doctor", meaning: "医者" }
-    ],
-    // 6. 目的語 (動詞カテゴリに対応)
-    O_CATEGORY: {
-        FOOD_DRINK: [
-            { word: "an apple", meaning: "りんご" }, 
-            { word: "some bread", meaning: "パン" }, 
-            { word: "some coffee", meaning: "コーヒー" },
-            { word: "the water", meaning: "水" }
-        ],
-        OBJECTS: [
-            { word: "a new car", meaning: "新しい車" }, 
-            { word: "a book", meaning: "本" }, 
-            { word: "a pen", meaning: "ペン" }
-        ],
-        MEDIA: [
-            { word: "the news", meaning: "ニュース" }, 
-            { word: "a novel", meaning: "小説" }, 
-            { word: "a letter", meaning: "手紙" },
-            { word: "a movie", meaning: "映画" }
-        ],
-        SPORTS_MUSIC: [
-            { word: "soccer", meaning: "サッカー" }, 
-            { word: "the guitar", meaning: "ギター" }, 
-            { word: "basketball", meaning: "バスケットボール" }
-        ],
-        LANGUAGE: [
-            { word: "English", meaning: "英語" },
-            { word: "Japanese", meaning: "日本語" },
-            { word: "French", meaning: "フランス語" }
-        ],
-        ABSTRACT: [
-            { word: "the truth", meaning: "真実" },
-            { word: "the answer", meaning: "答え" }
-        ]
-    }
-};
-
-// 構文テンプレートの定義 (OBJECT_COMPLEMENT はロジックで解決されるマーカー)
-const SENTENCE_TEMPLATES = {
-    // S + V + O (Present Simple) - 私は本を読む
-    SV_O_BASIC: {
-        template: ['PRONOUN_S', 'V_TRANSITIVE', 'OBJECT_COMPLEMENT'], 
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{OBJECT_COMPLEMENT}', 'を', '{V_TRANSITIVE}', '。']
-    },
-    // S + can + V + O - 彼はギターを弾くことができる
-    MODAL_CAN: {
-        template: ['PRONOUN_S', 'can', 'V_TRANSITIVE', 'OBJECT_COMPLEMENT'],
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{OBJECT_COMPLEMENT}', 'を', '{V_TRANSITIVE}', 'ことができる。']
-    },
-    // S + be + C (名詞) - 彼女は先生です
-    S_BE_C_NOUN: {
-        template: ['PRONOUN_S', 'BE_VERB', 'NOUN_S'],
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{NOUN_S}', 'です。']
-    },
-    // S + be + C (形容詞) - 私たちは幸せです
-    S_BE_C_ADJ: {
-        template: ['PRONOUN_S', 'BE_VERB', 'ADJ'],
-        meaningTemplate: ['{PRONOUN_S}', 'は', '{ADJ}', 'です。']
-    }
-};
-
-// ハイレベルコースの定義 (テンプレートを使用)
-const HIGH_LEVEL_TEMPLATES = {
-    "基本構文S+V+O": { templateId: "SV_O_BASIC", count: 10, meaning: "主語+動詞+目的語の基本文" },
-    "助動詞can構文": { templateId: "MODAL_CAN", count: 10, meaning: "助動詞canを使った文" },
-    "S+be+名詞": { templateId: "S_BE_C_NOUN", count: 10, meaning: "be動詞+名詞の文" },
-    "S+be+形容詞": { templateId: "S_BE_C_ADJ", count: 10, meaning: "be動詞+形容詞の文" }
-};
-
-// スタンダードコースの定義 (固定の英文を使用) - 既存の英文コースを再利用
-const STANDARD_SENTENCE_COURSES = WORD_DATA["英文コースセッション"];
 
 
 // =========================================================
@@ -655,27 +460,19 @@ function createCourseButton(session, courseName, buttonText) {
 function renderHomeMenu() {
     elements.nounCourses.innerHTML = '';
     elements.verbCourses.innerHTML = '';
-    
-    // 英文コースセッションをスタンダードとハイレベルに分割して表示
-    elements.sentenceCourses.innerHTML = `
-        <h4 class="text-base font-bold text-indigo-700 mt-2 mb-2 border-b">スタンダードコース (固定文)</h4>
-        <div id="standard-courses" class="space-y-2"></div>
-        <h4 class="text-base font-bold text-indigo-700 mt-4 mb-2 border-b">ハイレベルコース (構文テンプレート)</h4>
-        <div id="highlevel-courses" class="space-y-2"></div>
-    `;
-    const $standardCourses = $('standard-courses');
-    const $highlevelCourses = $('highlevel-courses');
+    elements.sentenceCourses.innerHTML = ''; // 英文コースセッションの初期化
 
-
+    // 普通名詞・一般動詞セッションのレンダリング
     for (const session in WORD_DATA) {
         let targetElement;
-        // 普通名詞・一般動詞セッションのレンダリング
+        
         if (session === "普通名詞セッション") {
             targetElement = elements.nounCourses;
         } else if (session === "一般動詞セッション") {
             targetElement = elements.verbCourses;
+        } else if (session === "英文コースセッション") {
+            targetElement = elements.sentenceCourses;
         } else {
-            // 英文コースセッションは個別に処理するためスキップ
             continue;
         }
 
@@ -684,175 +481,11 @@ function renderHomeMenu() {
             targetElement.appendChild(button);
         }
     }
-    
-    // スタンダード英文コース (固定文)
-    for (const courseName in STANDARD_SENTENCE_COURSES) {
-        const button = createCourseButton("英文コースセッション", courseName, courseName);
-        $standardCourses.appendChild(button);
-    }
-    
-    // ハイレベル英文コース (テンプレート生成)
-    for (const courseName in HIGH_LEVEL_TEMPLATES) {
-        const count = HIGH_LEVEL_TEMPLATES[courseName].count;
-        const button = createCourseButton("ハイレベル構文", courseName, `${courseName} (${count}問)`);
-        $highlevelCourses.appendChild(button);
-    }
 }
 
 
 // =========================================================
-// 5. 構文テンプレートロジック (意味の通る文を生成するように修正)
-// =========================================================
-
-/**
- * 配列からランダムな要素を返す
- * @param {Array<T>} arr 
- * @returns {T}
- */
-function getRandomElement(arr) {
-    if (!arr || arr.length === 0) return null;
-    return arr[Math.floor(Math.random() * arr.length)];
-}
-
-/**
- * 構文テンプレートに基づいてランダムな英文を生成する
- * @param {string} templateId - SENTENCE_TEMPLATESのキー
- * @returns {{word: string, meaning: string}}
- */
-function generateSentence(templateId) {
-    const templateData = SENTENCE_TEMPLATES[templateId];
-    if (!templateData) return { word: "Error", meaning: "エラー: テンプレートIDが無効です" };
-
-    const parts = {};
-    const words = [];
-    
-    // 1. 主語を決定し、文法的一致のための情報を保存
-    const subjectEntry = getRandomElement(LEXICON.PRONOUN_S);
-    parts.PRONOUN_S = subjectEntry.word;
-    
-    // 2. 使用する動詞とカテゴリを特定 (SVO/Modal構文のみ)
-    let verbEntry = null;
-    let objectCategory = null;
-    if (templateData.template.includes('V_TRANSITIVE')) {
-        verbEntry = getRandomElement(LEXICON.V_TRANSITIVE);
-        objectCategory = verbEntry.category;
-        
-        if (!LEXICON.O_CATEGORY[objectCategory]) {
-             return { word: "Error", meaning: `エラー: 目的語カテゴリ ${objectCategory} が見つかりません` };
-        }
-    }
-    
-    // 3. テンプレートを順に処理
-    for (const part of templateData.template) {
-        // --- 主語 ---
-        if (part === 'PRONOUN_S') {
-            words.push(subjectEntry.word);
-            continue;
-        }
-
-        // --- Be動詞 ---
-        if (part === 'BE_VERB') {
-            // 主語に応じたBe動詞の決定
-            const beEntry = LEXICON.BE_VERB.find(e => {
-                const sub = subjectEntry.word;
-                if (sub === 'I' && e.subject === 'I') return true;
-                if ((sub === 'You' || sub === 'We' || sub === 'They') && e.subject === 'You/We/They') return true;
-                if ((sub === 'He' || sub === 'She') && e.subject === 'He/She') return true;
-                return false;
-            });
-            const word = beEntry ? beEntry.word : 'is';
-            words.push(word);
-            parts[part] = beEntry.meaning;
-            continue;
-        }
-        
-        // --- 一般動詞 (V_TRANSITIVE) ---
-        if (part === 'V_TRANSITIVE') {
-            let verbWord = verbEntry.word;
-            
-            // S+V+Oテンプレートかつ三人称単数主語の場合、動詞に-sを付与
-            if ((templateId === 'SV_O_BASIC' || templateId === 'MODAL_CAN') && subjectEntry.singular) {
-                // 助動詞canの後ろは原形なので-sは不要
-                if (!templateData.template.includes('can')) {
-                     // 簡易的な三人称単数現在形の処理
-                    if (verbWord.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(verbWord.slice(-2,-1))) {
-                        verbWord = verbWord.slice(0, -1) + 'ies'; 
-                    } else if (['s', 'sh', 'ch', 'x', 'o'].some(suffix => verbWord.endsWith(suffix))) {
-                        verbWord += 'es'; 
-                    } else {
-                        verbWord += 's'; 
-                    }
-                }
-            }
-
-            words.push(verbWord);
-            parts[part] = verbEntry.meaning;
-            continue;
-        }
-        
-        // --- 目的語 (OBJECT_COMPLEMENT) ---
-        if (part === 'OBJECT_COMPLEMENT') {
-            // 動詞のカテゴリに一致する目的語リストから選択
-            const objectEntry = getRandomElement(LEXICON.O_CATEGORY[objectCategory]);
-            if (objectEntry) {
-                words.push(objectEntry.word);
-                parts[part] = objectEntry.meaning;
-            } else {
-                 return { word: "Error", meaning: "エラー: 目的語が選択できませんでした" };
-            }
-            continue;
-        }
-
-        // --- 名詞補語 (NOUN_S) ---
-        if (part === 'NOUN_S') {
-            const entry = getRandomElement(LEXICON.NOUN_S);
-            words.push(entry.word);
-            parts[part] = entry.meaning;
-            continue;
-        }
-
-        // --- 形容詞補語 (ADJ) ---
-        if (part === 'ADJ') {
-            const entry = getRandomElement(LEXICON.ADJ);
-            words.push(entry.word);
-            parts[part] = entry.meaning;
-            continue;
-        }
-
-        // --- 固定の単語 (e.g., 'can') ---
-        if (typeof part === 'string' && !LEXICON[part]) {
-            words.push(part);
-        }
-    }
-
-    // 4. 英語の文の整形
-    let englishSentence = words.join(' ');
-    // 最初の文字を大文字にし、最後にピリオドをつける
-    if (englishSentence.length > 0) {
-        englishSentence = englishSentence.charAt(0).toUpperCase() + englishSentence.slice(1);
-        if (!englishSentence.endsWith('.') && !englishSentence.endsWith('?') && !englishSentence.endsWith('!')) {
-            englishSentence += '.';
-        }
-    }
-    
-    // 5. 日本語訳の組み立て
-    let japaneseMeaning = templateData.meaningTemplate.join('');
-    // プレースホルダーを実際の日本語訳で置換
-    for (const key in parts) {
-        japaneseMeaning = japaneseMeaning.replace(new RegExp(`\\{${key}\\}`, 'g'), parts[key]);
-    }
-    // 不要な空白、句読点を整形
-    japaneseMeaning = japaneseMeaning.replace(/\s+/g, '').replace(/、。/g, '。').replace(/。。/g, '。');
-
-    return {
-        word: englishSentence,
-        meaning: japaneseMeaning.trim()
-    };
-}
-
-
-// =========================================================
-// 6. ゲームロジック
+// 5. ゲームロジック
 // =========================================================
 
 /**
@@ -862,31 +495,10 @@ function generateSentence(templateId) {
  * @param {string} courseName 
  */
 function startGame(mode, sessionName, courseName) {
-    // テンプレートコースの判定
-    const templateData = HIGH_LEVEL_TEMPLATES[courseName];
-    
+    // 固定文リストを取得
     let wordList = [];
-    if (templateData) {
-        // === ハイレベルコース (テンプレート生成) ===
-        for (let i = 0; i < templateData.count; i++) {
-            let newSentence;
-            let attempt = 0;
-            do {
-                newSentence = generateSentence(templateData.templateId);
-                attempt++;
-            } while (attempt < 5 && i > 0 && newSentence.word === wordList[i-1].word);
-
-            // エラーチェック
-            if (newSentence.word.startsWith("Error")) {
-                 console.error(newSentence.meaning);
-                 alert("問題生成中にエラーが発生しました。コンソールを確認してください。");
-                 changeScreen('home');
-                 return;
-            }
-            wordList.push(newSentence);
-        }
-    } else if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
-        // === スタンダードコース (固定データ) ===
+    if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
+        // === 全てのコースは固定データを使用 ===
         wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
     } else {
         console.error("Invalid course selection:", sessionName, courseName);
@@ -913,7 +525,7 @@ function startGame(mode, sessionName, courseName) {
     // UIの初期設定
     elements.currentModeDisplay.textContent = mode === 'normal' ? '通常モード' : '瞬間英作文モード';
     // コース表示名を調整
-    const courseDisplayName = sessionName === "ハイレベル構文" ? `ハイレベル / ${courseName}` : `${sessionName} / ${courseName}`;
+    const courseDisplayName = `${sessionName} / ${courseName}`;
     elements.courseDisplay.textContent = courseDisplayName;
     elements.timer.textContent = GAME_STATE.timer;
     elements.score.textContent = GAME_STATE.score;
@@ -991,7 +603,8 @@ function displayCurrentWord() {
         let blanks = '';
         for (let i = 0; i < currentWordData.word.length; i++) {
             if (i === 0) {
-                blanks += `<span class="current-char">_</span>`;
+                // 最初の文字はブランクに見せるが、ハイライトする
+                blanks += `<span class="current-char">${currentWordData.word[i] === ' ' ? '&nbsp;' : '_'}</span>`; 
             } else if (currentWordData.word[i] === ' ') {
                 blanks += `<span class="blank-char">&nbsp;</span>`; // スペースはそのまま
             } else {
@@ -1099,9 +712,6 @@ elements.typingInput.addEventListener('input', () => {
         }
         
     } else {
-        // 入力が正しい状態に戻ったため、ペナルティフラグを解除
-        // ここでフラグをリセットすると、すぐに再ペナルティを受ける可能性があるため、完了まで維持
-        // GAME_STATE.currentWordMistakeFlag = false; 
         elements.feedbackMessage.textContent = '';
         
         if (typedText.length === currentWord.length) {
@@ -1149,7 +759,7 @@ function displayResult() {
 
 
 // =========================================================
-// 7. 初期化
+// 6. 初期化
 // =========================================================
 
 // ページロード時にホーム画面を表示
