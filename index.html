@@ -109,9 +109,9 @@
                 
                 <!-- 英文コースセッション (CSVデータに基づく固定文) -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション</h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">英文コースセッション (意味順ドリル)</h3>
                     <div id="sentence-courses" class="space-y-2">
-                        <!-- コース選択メニューが動的に挿入されます -->
+                        <!-- 全9パターンのコース選択メニューが動的に挿入されます -->
                     </div>
                 </div>
             </div>
@@ -190,6 +190,7 @@
 <script>
 // =========================================================
 // 1. データ定義 (英単語 + 英文 全てのコースを固定文で構成)
+// CSVデータから抽出した全9パターンの英文180問をここに格納します。
 // =========================================================
 
 const WORD_DATA = {
@@ -277,10 +278,8 @@ const WORD_DATA = {
         ]
     },
     
-    // === 英文コースセッション (CSVデータに基づく固定文) ===
-    // テンプレート生成は廃止し、全て固定文に置き換えます。
+    // === 英文コースセッション (CSVデータに基づく固定文: 全9パターン, 180問) ===
     "英文コースセッション": {
-        // CSVデータから抽出した「パターン１」の文
         "パターン１：「誰が(S)」「する(V)」（S + V / S + V + C）": [
             { word: "I am Edward Trout.", meaning: "私はエドワード・トラウトです。" },
             { word: "Are you an anime fan?", meaning: "あなたはアニメのファンですか。" },
@@ -294,10 +293,192 @@ const WORD_DATA = {
             { word: "We work hard.", meaning: "私たちは一生懸命働きます。" },
             { word: "The door opened.", meaning: "ドアが開きました。" },
             { word: "The food tastes salty.", meaning: "その食べ物は塩辛い味がします。" },
-            { word: "Everyone smiled.", meaning: "みんなが微笑みました。" }
+            { word: "Everyone smiled.", meaning: "みんなが微笑みました。" },
+            { word: "You should be careful.", meaning: "あなたは注意すべきです。" },
+            { word: "They are quiet.", meaning: "彼らは静かです。" },
+            { word: "He seems nice.", meaning: "彼は優しそうだ。" },
+            { word: "Keep quiet.", meaning: "静かにしなさい。" },
+            { word: "The river flows quickly.", meaning: "その川は速く流れる。" },
+            { word: "I feel tired.", meaning: "私は疲れていると感じる。" },
+            { word: "Let's sing together.", meaning: "一緒に歌いましょう。" }
         ],
-        // CSVデータから抽出した仮定法に関連する文（タイトル未指定のため、構造から命名）
-        "仮定法（If S were / I wish など）": [ 
+        "パターン２：「誰が(S)」「する(V)」「何を(O)」（S + V + O）": [
+            { word: "I like Japanese sweets.", meaning: "私は日本の甘い菓子が好きです。" },
+            { word: "Do you like rugby?", meaning: "あなたはラグビーが好きですか。" },
+            { word: "I do not play rugby.", meaning: "私はラグビーをしません。" },
+            { word: "We bought a new car.", meaning: "私たちは新しい車を買いました。" },
+            { word: "He speaks English well.", meaning: "彼は英語を上手に話します。" },
+            { word: "She is eating lunch now.", meaning: "彼女は今、昼食を食べています。" },
+            { word: "Did you see the movie?", meaning: "あなたはその映画を見ましたか。" },
+            { word: "I will write a letter tomorrow.", meaning: "私は明日、手紙を書くつもりです。" },
+            { word: "She must finish her homework.", meaning: "彼女は宿題を終えなければならない。" },
+            { word: "I have to call him later.", meaning: "私は後で彼に電話しなければならない。" },
+            { word: "Reading books is fun.", meaning: "本を読むことは楽しい。" },
+            { word: "They enjoyed hiking.", meaning: "彼らはハイキングを楽しみました。" },
+            { word: "He wants to buy a dog.", meaning: "彼は犬を買いたがっている。" },
+            { word: "I need to study hard.", meaning: "私は一生懸命勉強する必要がある。" },
+            { word: "I want you to help me.", meaning: "私はあなたに私を手伝ってほしい。" },
+            { word: "The government decided to stop the plan.", meaning: "政府はその計画を中止することを決定した。" },
+            { word: "I like to listen to music.", meaning: "私は音楽を聴くことが好きです。" },
+            { word: "He gave up smoking.", meaning: "彼は喫煙をやめました。" },
+            { word: "She knows how to cook Japanese food.", meaning: "彼女は日本食の調理方法を知っている。" },
+            { word: "I cannot make shumai.", meaning: "私はシュウマイを作ることができません。" }
+        ],
+        "パターン３：「誰が(S)」「する(V)」「誰に(O)」「何を(O)」（S + V + O + O）": [
+            { word: "My father gave me a new bike.", meaning: "私の父は私に新しい自転車をくれました。" },
+            { word: "She showed us her photos.", meaning: "彼女は私たちに彼女の写真を見せました。" },
+            { word: "I bought my sister a present.", meaning: "私は姉にプレゼントを買いました。" },
+            { word: "He taught me English.", meaning: "彼は私に英語を教えてくれました。" },
+            { word: "Can you lend me some money?", meaning: "私にお金を貸してもらえますか。" },
+            { word: "I told him the truth.", meaning: "私は彼に真実を話しました。" },
+            { word: "Please send me an email.", meaning: "私にEメールを送ってください。" },
+            { word: "I will make you some coffee.", meaning: "私はあなたにコーヒーを淹れてあげます。" },
+            { word: "He passed me the salt.", meaning: "彼は私に塩を手渡しました。" },
+            { word: "They offered him a good job.", meaning: "彼らは彼に良い仕事を提供した。" },
+            { word: "We wish you a happy new year.", meaning: "私たちはあなたに幸せな新年を願っています。" },
+            { word: "She asked me a question.", meaning: "彼女は私に質問をしました。" },
+            { word: "I owe you $10.", meaning: "私はあなたに10ドル借りています。" },
+            { word: "Read me a story.", meaning: "私に物語を読んでください。" },
+            { word: "He brought his children gifts.", meaning: "彼は子供たちに贈り物を買ってきました。" },
+            { word: "I found my dog a toy.", meaning: "私は犬に新しいおもちゃを見つけてあげました。" },
+            { word: "Tell me what you have done.", meaning: "あなた(たち)が何をしたところかを教えてください。" },
+            { word: "We cooked them dinner.", meaning: "私たちは彼らに夕食を作りました。" },
+            { word: "Will you buy me this book?", meaning: "私にこの本を買ってくれますか。" },
+            { word: "He saved me a seat.", meaning: "彼は私の席を取っておいてくれました。" }
+        ],
+        "パターン４：「誰が(S)」「する(V)」「何を(O)」「どこに（A）」（S + V + O + A）": [
+            { word: "I put the book on the table.", meaning: "私はテーブルの上に本を置きました。" },
+            { word: "She took her dog to the park.", meaning: "彼女は犬を公園に連れて行きました。" },
+            { word: "We found the keys in the drawer.", meaning: "私たちは引き出しの中に鍵を見つけました。" },
+            { word: "He hung the picture on the wall.", meaning: "彼は壁に絵を掛けました。" },
+            { word: "Don't leave the door open.", meaning: "ドアを開けっ放しにしないでください。" },
+            { word: "She kept the children happy.", meaning: "彼女は子供たちを幸せな状態に保った。" },
+            { word: "They made him their leader.", meaning: "彼らは彼を自分たちのリーダーにした。" },
+            { word: "I consider her my best friend.", meaning: "私は彼女を親友だと思っています。" },
+            { word: "We paint the house white.", meaning: "私たちは家を白く塗ります。" },
+            { word: "I saw him run away.", meaning: "私は彼が逃げ去るのを見た。" },
+            { word: "She heard me call her name.", meaning: "彼女は私が彼女の名前を呼ぶのを聞いた。" },
+            { word: "I want my coffee hot.", meaning: "私はコーヒーを熱い状態で飲みたい。" },
+            { word: "The news made me sad.", meaning: "そのニュースは私を悲しくさせた。" },
+            { word: "I had my hair cut.", meaning: "私は髪を切ってもらった。" },
+            { word: "I got my computer fixed.", meaning: "私はコンピューターを修理してもらった。" },
+            { word: "I want the work finished by Friday.", meaning: "私は金曜日までにその仕事を終えてほしい。" },
+            { word: "The wind made the window open.", meaning: "風が窓を開けさせた。" },
+            { word: "She believes him honest.", meaning: "彼女は彼が正直だと信じている。" },
+            { word: "I found the task easy.", meaning: "私はその課題が簡単だとわかった。" },
+            { word: "He often drives the car too fast.", meaning: "彼はしばしば車を速く運転しすぎる。" }
+        ],
+        "パターン５：関係詞（Who / Which / That）": [
+            { word: "The woman smiling in a kimono is Taylor.", meaning: "着物を着てほほえんでいる女性はテイラーです。" },
+            { word: "Gandhi is a man who has influenced a lot of people.", meaning: "ガンディーは多くの人々に影響を与えた人です。" },
+            { word: "This is a movie that makes people happy.", meaning: "これは人々を幸せにする映画です。" },
+            { word: "This is a picture that I found on the internet.", meaning: "これは私がインターネットで見つけた写真です。" },
+            { word: "Many things that we see every day come from overseas.", meaning: "私たちが毎日目にする多くのものは海外から来ています。" },
+            { word: "There is a movie called Live Your Dream.", meaning: "「Live Your Dream (夢を生きる)」と呼ばれる映画があります。" },
+            { word: "I wish I had pens and notebooks.", meaning: "ノートやペンを持っていればいいのになあ。" },
+            { word: "I know a man who can speak five languages.", meaning: "私は5ヶ国語を話せる男性を知っています。" },
+            { word: "She is the artist whose painting I bought.", meaning: "彼女は私が絵を買ったアーティストです。" },
+            { word: "I live in a town which is famous for its cheese.", meaning: "私はチーズで有名な町に住んでいます。" },
+            { word: "This is the place where we first met.", meaning: "ここは私たちが初めて会った場所です。" },
+            { word: "Do you remember the day when we went to Kyoto?", meaning: "私たちが京都へ行った日を覚えていますか。" },
+            { word: "The reason why I came here is to talk to you.", meaning: "私がここに来た理由はあなたと話すことです。" },
+            { word: "The girl wearing a red hat is my cousin.", meaning: "赤い帽子をかぶっている女の子は私のいとこです。" },
+            { word: "He is the only person who knows the secret.", meaning: "彼はその秘密を知っている唯一の人だ。" },
+            { word: "I couldn't hear what he said.", meaning: "私は彼が言ったことを聞き取れませんでした。" },
+            { word: "Tell me what you think.", meaning: "あなたがどう思うか教えてください。" },
+            { word: "This is the pen with which I write my novel.", meaning: "これは私が小説を書くのに使うペンです。" },
+            { word: "He is the man to whom I gave the book.", meaning: "彼が私がその本をあげた男性です。" },
+            { word: "That is the most beautiful flower I have ever seen.", meaning: "あれは私が今まで見た中で最も美しい花です。" }
+        ],
+        "パターン６：比較（as...as / more...than / the most）": [
+            { word: "My sister is as tall as me.", meaning: "私の姉は私と同じくらい背が高い。" },
+            { word: "He is taller than his brother.", meaning: "彼は彼の弟より背が高い。" },
+            { word: "This is the oldest temple in Kyoto.", meaning: "これは京都で最も古い寺です。" },
+            { word: "She runs faster than I do.", meaning: "彼女は私よりも速く走る。" },
+            { word: "This book is more interesting than that one.", meaning: "この本はあの本よりもっと面白い。" },
+            { word: "It was the most exciting game I have ever watched.", meaning: "それは私が今まで見た中で最もわくわくする試合だった。" },
+            { word: "I can't run as fast as you.", meaning: "私はあなたほど速く走れません。" },
+            { word: "The more you practice, the better you become.", meaning: "練習すればするほど、上手になる。" },
+            { word: "He has as many books as I do.", meaning: "彼は私と同じくらいの数の本を持っている。" },
+            { word: "The population of Tokyo is larger than that of Osaka.", meaning: "東京の人口は大阪の人口よりも多い。" },
+            { word: "I like coffee better than tea.", meaning: "私は紅茶よりもコーヒーが好きです。" },
+            { word: "She is one of the best singers in the world.", meaning: "彼女は世界で最も歌が上手な歌手の一人だ。" },
+            { word: "English is the most important subject for me.", meaning: "私にとって英語が最も重要な科目だ。" },
+            { word: "He looks much happier than yesterday.", meaning: "彼は昨日よりもずっと幸せそうだ。" },
+            { word: "The food was less salty than I expected.", meaning: "その食べ物は私が期待していたほど塩辛くなかった。" },
+            { word: "Nothing is more important than health.", meaning: "健康よりも大切なものはない。" },
+            { word: "I got up as early as possible.", meaning: "私はできるだけ早く起きた。" },
+            { word: "He ate twice as much as I did.", meaning: "彼は私の2倍の量を食べた。" },
+            { word: "She is not only smart but also kind.", meaning: "彼女は賢いだけでなく、優しい。" },
+            { word: "I prefer dogs to cats.", meaning: "私は猫よりも犬が好きだ。" }
+        ],
+        "パターン７：受動態（Be + 過去分詞）": [
+            { word: "This movie was directed by a famous director.", meaning: "この映画は有名な監督によって監督された。" },
+            { word: "English is spoken in many countries.", meaning: "英語は多くの国で話されている。" },
+            { word: "The window was broken by the children.", meaning: "窓は子供たちによって割られました。" },
+            { word: "A new library will be built next year.", meaning: "新しい図書館は来年建設されるだろう。" },
+            { word: "The cake was made by my mother.", meaning: "そのケーキは私の母によって作られた。" },
+            { word: "The problem has been solved.", meaning: "その問題は解決された。" },
+            { word: "He was surprised at the news.", meaning: "彼はそのニュースに驚いた。" },
+            { word: "She is interested in Japanese culture.", meaning: "彼女は日本文化に興味がある。" },
+            { word: "I am worried about my exam.", meaning: "私は試験のことが心配だ。" },
+            { word: "The stadium is always crowded with people.", meaning: "そのスタジアムはいつも人々で混雑している。" },
+            { word: "He was known to everyone in the town.", meaning: "彼は町のみんなに知られていた。" },
+            { word: "The door must be kept locked.", meaning: "ドアは鍵をかけておかなければならない。" },
+            { word: "You must be treated kindly.", meaning: "あなたは親切に扱われるべきだ。" },
+            { word: "We were told to wait outside.", meaning: "私たちは外で待つように言われた。" },
+            { word: "The house was built 50 years ago.", meaning: "その家は50年前に建てられた。" },
+            { word: "Is this book read by many students?", meaning: "この本は多くの生徒に読まれていますか。" },
+            { word: "The letter was written in English.", meaning: "その手紙は英語で書かれていた。" },
+            { word: "They were given some advice.", meaning: "彼らはいくつかアドバイスを与えられた。" },
+            { word: "A new hospital is being constructed now.", meaning: "新しい病院が今、建設中です。" },
+            { word: "It is said that he is a genius.", meaning: "彼は天才だと言われている。" }
+        ],
+        "パターン８：to不定詞（名詞的・形容詞的・副詞的）": [
+            { word: "My dream is to travel around the world.", meaning: "私の夢は世界中を旅することです。" },
+            { word: "I want to buy a new computer.", meaning: "私は新しいコンピューターを買いたい。" },
+            { word: "It is easy to learn Japanese.", meaning: "日本語を学ぶのは簡単です。" },
+            { word: "I have a lot of homework to do.", meaning: "私にはするべき宿題がたくさんある。" },
+            { word: "She has no friends to talk with.", meaning: "彼女には一緒に話す友達がいない。" },
+            { word: "We went to the park to play soccer.", meaning: "私たちはサッカーをするために公園へ行きました。" },
+            { word: "He studied hard to pass the exam.", meaning: "彼は試験に合格するために一生懸命勉強した。" },
+            { word: "I was surprised to hear the news.", meaning: "私はそのニュースを聞いて驚いた。" },
+            { word: "You must be tired to say such a thing.", meaning: "そんなことを言うなんて、あなたは疲れているに違いない。" },
+            { word: "He grew up to be a doctor.", meaning: "彼は成長して医者になった。" },
+            { word: "I decided not to go there.", meaning: "私はそこに行かないことを決めた。" },
+            { word: "To tell the truth, I don't like natto.", meaning: "実を言うと、私は納豆が好きではない。" },
+            { word: "I don't know what to do next.", meaning: "次に何をすべきか私にはわからない。" },
+            { word: "The boy needs someone to play with.", meaning: "その男の子には一緒に遊ぶ誰かが必要だ。" },
+            { word: "It is important for us to learn history.", meaning: "私たちにとって歴史を学ぶことは重要です。" },
+            { word: "She seems to be rich.", meaning: "彼女は裕福なようだ。" },
+            { word: "They plan to visit Kyoto next month.", meaning: "彼らは来月、京都を訪れる予定だ。" },
+            { word: "I have nothing to talk about.", meaning: "私には話すことが何もない。" },
+            { word: "I have too much work to do.", meaning: "私にはすることが多すぎる。" },
+            { word: "He is old enough to drive a car.", meaning: "彼は車を運転できる年齢だ。" }
+        ],
+        "パターン９：接続詞・従属節（When / If / That / Because / Although など）": [
+            { word: "When I came home, my mother was cooking dinner.", meaning: "私が家に帰ったとき、母は夕食を作っていた。" },
+            { word: "If it rains tomorrow, we will stay home.", meaning: "もし明日雨が降れば、私たちは家にいるだろう。" },
+            { word: "I think that he is honest.", meaning: "私は彼が正直だと思います。" },
+            { word: "Because I was tired, I went to bed early.", meaning: "疲れていたので、私は早く寝ました。" },
+            { word: "Although it was cold, we went swimming.", meaning: "寒かったけれど、私たちは泳ぎに行った。" },
+            { word: "She said that she would help me.", meaning: "彼女は私を手伝うだろうと言った。" },
+            { word: "Tell me when you will come.", meaning: "あなたがいつ来るか教えてください。" },
+            { word: "I don't know if he is coming.", meaning: "彼が来るかどうか私にはわからない。" },
+            { word: "The news that he won the lottery is true.", meaning: "彼が宝くじに当たったというニュースは本当だ。" },
+            { word: "She is working hard so that she can buy a house.", meaning: "彼女は家を買えるように一生懸命働いている。" },
+            { word: "I will wait until you come back.", meaning: "あなたが戻ってくるまで待っています。" },
+            { word: "He left before I woke up.", meaning: "彼が目を覚ます前に彼は出かけた。" },
+            { word: "It has been raining since last night.", meaning: "昨夜から雨が降り続いている。" },
+            { word: "I will go even if it snows.", meaning: "たとえ雪が降っても私は行きます。" },
+            { word: "I am sure that she will succeed.", meaning: "私は彼女が成功すると確信している。" },
+            { word: "The problem is that we don't have enough money.", meaning: "問題は私たちにお金が十分ないことです。" },
+            { word: "As soon as I arrived, I called her.", meaning: "到着するやいなや、私は彼女に電話した。" },
+            { word: "He looks as if he were ill.", meaning: "彼は病気であるかのように見える。" },
+            { word: "I don't know why he is angry.", meaning: "彼がなぜ怒っているのか私にはわからない。" },
+            { word: "Whether you like it or not, you have to do it.", meaning: "好きであろうとなかろうと、あなたはそれをしなければならない。" }
+        ],
+        "仮定法（If S were / I wish など）": [
             { word: "If I were an animal, I would be a dolphin.", meaning: "もし私が動物なら、イルカになるでしょう。" },
             { word: "If she were here, she would know what to do.", meaning: "もし彼女がここにいれば、何をすべきかわかるだろうに。" },
             { word: "He acts as if he were a leader.", meaning: "彼はまるでリーダーであるかのように振る舞います。" },
@@ -307,7 +488,17 @@ const WORD_DATA = {
             { word: "If they changed the rule, the game would be better.", meaning: "もし彼らがルールを変えたら、試合はもっとよくなるだろうに。" },
             { word: "I wish I knew the answer to that question.", meaning: "あの質問の答えを知っていればいいのに。" },
             { word: "If I spoke French, I could live in Paris.", meaning: "もし私がフランス語を話せたら、パリに住めるのに。" },
-            { word: "She looked as if she hadn't slept for days.", meaning: "彼女はまるで数日間寝ていないかのように見えました。" }
+            { word: "She looked as if she hadn't slept for days.", meaning: "彼女はまるで数日間寝ていないかのように見えました。" },
+            { word: "I wish I were good at singing.", meaning: "歌が上手ければいいのになあ。" },
+            { word: "If I had known the truth, I would have told you.", meaning: "もし私が真実を知っていたら、あなたに話しただろう。" },
+            { word: "He talks as if he knew everything.", meaning: "彼はまるで何でも知っているかのように話す。" },
+            { word: "If you had been there, you would have enjoyed it.", meaning: "もしあなたがそこにいたら、楽しめたでしょう。" },
+            { word: "I wish I could fly like a bird.", meaning: "鳥のように飛べたらいいのになあ。" },
+            { word: "If I won a million dollars, I would travel the world.", meaning: "もし100万ドル当たったら、世界を旅するだろう。" },
+            { word: "I wish I hadn't said that to her.", meaning: "彼女にそんなことを言わなければよかった。" },
+            { word: "If I had a school backpack, I would donate it.", meaning: "もし私がランドセルを持っていれば、寄付するでしょう。" },
+            { word: "He behaves as if nothing had happened.", meaning: "彼は何も起こらなかったかのように振る舞う。" },
+            { word: "If it were not for the sun, nothing could live.", meaning: "もし太陽がなければ、何も生きられないだろう。" }
         ]
     }
 };
@@ -477,6 +668,7 @@ function renderHomeMenu() {
         }
 
         for (const courseName in WORD_DATA[session]) {
+            // パターンコース名が長いため、スタイルを調整できますが、今回はそのまま表示します。
             const button = createCourseButton(session, courseName, courseName);
             targetElement.appendChild(button);
         }
@@ -499,7 +691,8 @@ function startGame(mode, sessionName, courseName) {
     let wordList = [];
     if (WORD_DATA[sessionName] && WORD_DATA[sessionName][courseName]) {
         // === 全てのコースは固定データを使用 ===
-        wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); // シャッフル
+        // データをシャッフルして、ランダムな出題順にする
+        wordList = [...WORD_DATA[sessionName][courseName]].sort(() => Math.random() - 0.5); 
     } else {
         console.error("Invalid course selection:", sessionName, courseName);
         return;
