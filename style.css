@@ -8,6 +8,7 @@
     --locked-color: #ccc;
     --correct-color: #28a745;
     --incorrect-color: #dc3545;
+    --underline-color: #999; /* ★追加 (ハードモードのアンダーバー色) */
 }
 
 * {
@@ -107,9 +108,10 @@ h2 {
     gap: 2vmin;
 }
 
+/* ★修正2: コース選択を縦並びリストに変更 */
 #course-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    display: flex;
+    flex-direction: column; /* 縦並び */
     gap: 1.5vmin;
     width: 100%;
     max-height: 40vh;
@@ -120,9 +122,11 @@ h2 {
 }
 
 .course-btn {
-    padding: 2.5vmin;
+    padding: 2vmin 3vmin; /* 上下/左右のパディング調整 */
     font-size: 2vmin;
     min-width: auto;
+    width: 100%; /* 横幅いっぱい */
+    text-align: left; /* テキスト左寄せ */
 }
 
 .course-btn.locked {
@@ -160,7 +164,7 @@ h2 {
     height: 5vmin; /* 領域確保 */
 }
 
-/* ハードモード用 */
+/* ★修正3: ハードモードのスタイル */
 #en-text-hard {
     font-size: 4vmin;
     font-weight: bold;
@@ -169,16 +173,15 @@ h2 {
     display: flex;
     justify-content: center;
     flex-wrap: wrap; /* 長い文章の折り返し */
+    color: var(--text-color); /* タイプ成功時の文字色 */
 }
 
 #en-text-hard span {
-    visibility: hidden; /* JSで .visible をつけて表示 */
-    min-width: 1.5vmin; /* スペース用 */
+    min-width: 1.5vmin; /* 'i'などの細い文字用の最小幅 */
+    color: var(--underline-color); /* アンダーバーの色 */
 }
+/* 以前の .visible は不要なため削除 */
 
-#en-text-hard span.visible {
-    visibility: visible;
-}
 
 #input-box {
     width: 90%;

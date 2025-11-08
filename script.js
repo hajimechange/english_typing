@@ -143,6 +143,7 @@ function setupEventListeners() {
 
     // 戻るボタン
     document.querySelectorAll(".btn-back").forEach(btn => {
+        // ★修正1: ここのロジックは前回のでOK (data-targetが "mode" や "session" になったため)
         btn.addEventListener("click", () => showHomeScreen(btn.dataset.target));
     });
 
@@ -224,7 +225,9 @@ function updateCourseDisplay() {
     sessionCourses.forEach((course, index) => {
         const btn = document.createElement("button");
         btn.classList.add("btn", "course-btn");
-        btn.textContent = `Course ${index + 1}: ${course.name.split('(')[0]}`; // (S+V)などを省略
+        
+        // ★修正2: ボタンのテキストを全文表示に変更
+        btn.textContent = `Course ${index + 1}: ${course.name}`;
         
         if (index <= maxCleared) {
             // アンロック状態
@@ -321,13 +324,17 @@ function nextProblem() {
     jaTextEl.textContent = currentProblem.ja;
 
     if (currentMode === 'hard') {
-        // ハードモード: 英語を非表示にし、spanを生成
+        // ★修正3: ハードモード: アンダーバーを表示
         enTextEl.style.display = 'none';
         enTextHardContainer.style.display = 'flex';
         enTextHardContainer.innerHTML = ''; // クリア
+        
         targetText.split('').forEach(char => {
             const span = document.createElement('span');
-            span.textContent = char === ' ' ? '\u00A0' : char; // スペースは&nbsp;に
+            span.dataset.char = char; // 元の文字をdata属性に保存
+            // スペースはそのまま（見えないスペース）、他はアンダーバー
+            span.textContent = (char === ' ') ? '\u00A0' : '_';
+            // 色はCSS側 (#en-text-hard span) で制御
             enTextHardContainer.appendChild(span);
         });
     } else {
@@ -373,11 +380,16 @@ function handleInput(e) {
             typedChars += newCharsCount; // タイプ文字数にはスペースも含む
             scoreEl.textContent = score;
 
-            // ハードモード表示更新
+            // ★修正3: ハードモード表示更新
             if (currentMode === 'hard') {
                 const spans = enTextHardContainer.querySelectorAll('span');
+                const rootStyles = getComputedStyle(document.documentElement);
+                const defaultColor = rootStyles.getPropertyValue('--text-color').trim();
+
                 for (let i = currentTypedIndex; i < typedValue.length; i++) {
-                    spans[i].classList.add('visible');
+                    const char = spans[i].dataset.char; 
+                    spans[i].textContent = char; // 元の文字に戻す
+                    spans[i].style.color = defaultColor; // 色を元の文字色に戻す
                 }
             }
         }
