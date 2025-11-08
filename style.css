@@ -8,7 +8,7 @@
     --locked-color: #ccc;
     --correct-color: #28a745;
     --incorrect-color: #dc3545;
-    --underline-color: #999; /* ★追加 (ハードモードのアンダーバー色) */
+    --underline-color: #999; /* ハードモードのアンダーバー色 */
 }
 
 * {
@@ -108,7 +108,6 @@ h2 {
     gap: 2vmin;
 }
 
-/* ★修正2: コース選択を縦並びリストに変更 */
 #course-grid {
     display: flex;
     flex-direction: column; /* 縦並び */
@@ -164,7 +163,7 @@ h2 {
     height: 5vmin; /* 領域確保 */
 }
 
-/* ★修正3: ハードモードのスタイル */
+/* ハードモードのスタイル */
 #en-text-hard {
     font-size: 4vmin;
     font-weight: bold;
@@ -180,19 +179,17 @@ h2 {
     min-width: 1.5vmin; /* 'i'などの細い文字用の最小幅 */
     color: var(--underline-color); /* アンダーバーの色 */
 }
-/* 以前の .visible は不要なため削除 */
 
 
 #input-box {
     width: 90%;
     max-width: 800px;
     padding: 2vmin;
-    font-size: 6vmin;
     text-align: center;
     border: 2px solid #ccc;
     border-radius: 8px;
-    /* iOSでの自動ズームを防ぐ */
-    font-size: 16px; 
+    /* iOSでの自動ズームを防ぐ＆サイズを2倍に */
+    font-size: 32px; /* ★ 16pxから32pxに変更 */
 }
 
 #home-btn {
