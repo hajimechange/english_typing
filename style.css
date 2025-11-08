@@ -1,0 +1,226 @@
+/* --- 基本設定とiPad最適化 --- */
+:root {
+    --bg-color: #f4f7f6;
+    --main-color: #ffffff;
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --text-color: #333;
+    --locked-color: #ccc;
+    --correct-color: #28a745;
+    --incorrect-color: #dc3545;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    /* ピンチズームの防止 */
+    touch-action: manipulation;
+}
+
+/* --- アプリコンテナ (iPadの画面比を想定) --- */
+#app-container {
+    width: 100vw;
+    height: 100vh;
+    /* iPad (4:3) の横向きを最大サイズとする */
+    max-width: 1024px;
+    max-height: 768px;
+    margin: auto;
+    background: var(--main-color);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex; /* 子要素(.screen)がflexアイテムになるように */
+}
+
+/* --- 画面共通 --- */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 3vmin;
+    display: none; /* JSで .active をつけて表示 */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3vmin;
+}
+
+.screen.active {
+    display: flex;
+}
+
+h1 {
+    font-size: 7vmin;
+    color: var(--primary-color);
+}
+
+h2 {
+    font-size: 4vmin;
+    text-align: center;
+    margin-bottom: 1vmin;
+}
+
+/* --- ボタン共通 --- */
+.btn {
+    padding: 2vmin 4vmin;
+    font-size: 2.5vmin;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: var(--primary-color);
+    color: white;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    text-align: center;
+    min-width: 200px;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-back {
+    background-color: #6c757d;
+}
+.btn-back:hover {
+    background-color: #5a6268;
+}
+
+/* --- ホーム画面 --- */
+.selection-container {
+    width: 80%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 2vmin;
+}
+
+#course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1.5vmin;
+    width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 1vmin;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.course-btn {
+    padding: 2.5vmin;
+    font-size: 2vmin;
+    min-width: auto;
+}
+
+.course-btn.locked {
+    background-color: var(--locked-color);
+    cursor: not-allowed;
+}
+
+/* --- ゲーム画面 --- */
+#game-header {
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 3vmin;
+    font-weight: bold;
+    position: absolute;
+    top: 3vmin;
+}
+
+#problem-area {
+    width: 90%;
+    text-align: center;
+}
+
+#ja-text {
+    font-size: 3vmin;
+    margin-bottom: 3vmin;
+    color: #555;
+    height: 4vmin; /* 領域確保 */
+}
+
+#en-text {
+    font-size: 4vmin;
+    font-weight: bold;
+    letter-spacing: 1px;
+    height: 5vmin; /* 領域確保 */
+}
+
+/* ハードモード用 */
+#en-text-hard {
+    font-size: 4vmin;
+    font-weight: bold;
+    letter-spacing: 1px;
+    height: 5vmin; /* 領域確保 */
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap; /* 長い文章の折り返し */
+}
+
+#en-text-hard span {
+    visibility: hidden; /* JSで .visible をつけて表示 */
+    min-width: 1.5vmin; /* スペース用 */
+}
+
+#en-text-hard span.visible {
+    visibility: visible;
+}
+
+#input-box {
+    width: 90%;
+    max-width: 800px;
+    padding: 2vmin;
+    font-size: 3vmin;
+    text-align: center;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    /* iOSでの自動ズームを防ぐ */
+    font-size: 16px; 
+}
+
+#home-btn {
+    position: absolute;
+    bottom: 3vmin;
+    right: 3vmin;
+    padding: 1.5vmin 3vmin;
+    font-size: 2vmin;
+    min-width: auto;
+    background-color: #dc3545;
+}
+#home-btn:hover {
+    background-color: #c82333;
+}
+
+/* --- 結果画面 --- */
+#result-title {
+    font-size: 5vmin;
+}
+#result-message {
+    font-size: 3.5vmin;
+    font-weight: bold;
+}
+#result-message.clear {
+    color: var(--correct-color);
+}
+#result-message.fail {
+    color: var(--incorrect-color);
+}
+
+#result-details {
+    font-size: 3vmin;
+    line-height: 1.8;
+}

@@ -2,584 +2,74 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>English Typing Game</title>
-    <style>
-        /* 基本スタイル */
-        :root {
-            --primary-color: #4a90e2;
-            --secondary-color: #50e3c2;
-            --correct-color: #2ecc71;
-            --background-color: #f0f4f8;
-            --text-color: #333;
-            --light-text-color: #fff;
-            --border-radius: 12px;
-            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        .container {
-            width: 100%;
-            height: 100%;
-            max-width: 1024px; /* iPad portrait width */
-            max-height: 1366px; /* iPad portrait height */
-            background-color: white;
-            box-shadow: var(--box-shadow);
-            border-radius: var(--border-radius);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* 画面共通スタイル */
-        .screen {
-            padding: 40px;
-            box-sizing: border-box;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: absolute;
-            top: 0;
-            left: 0;
-            transition: opacity 0.5s ease-in-out, visibility 0.5s;
-        }
-        
-        #home-screen {
-             justify-content: flex-start;
-             padding-top: 10vh;
-        }
-        
-        #game-screen, #result-screen {
-            justify-content: center;
-        }
-
-        .screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-            visibility: hidden;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            color: var(--primary-color);
-            margin-bottom: 5vh;
-        }
-
-        h2 {
-            font-size: 2rem;
-            color: var(--text-color);
-            margin-bottom: 30px;
-            position: relative;
-            width: 100%;
-        }
-        
-        /* ホーム画面のスタイル */
-        .selection-wrapper {
-            width: 100%;
-            max-width: 800px;
-            display: grid;
-        }
-
-        .selection-wrapper > .selection-container {
-            grid-column: 1 / -1;
-            grid-row: 1 / -1;
-            transition: opacity 0.4s ease-in-out, visibility 0.4s;
-        }
-
-        .selection-container.hidden {
-            opacity: 0;
-            pointer-events: none;
-            visibility: hidden;
-        }
-        
-        .selection-grid {
-            display: grid;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .grid-cols-2 {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .grid-cols-3 {
-             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        }
-
-        .btn {
-            padding: 20px 30px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--light-text-color);
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .back-btn {
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #bdc3c7;
-            font-size: 1.2rem;
-            padding: 10px 20px;
-        }
-
-        /* ゲーム画面のスタイル */
-        #game-screen {
-            justify-content: space-between;
-        }
-
-        .game-header {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.8rem;
-            font-weight: bold;
-        }
-
-        .game-main {
-            width: 100%;
-        }
-
-        #question-en {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-            min-height: 100px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        #question-en span {
-            transition: color 0.1s;
-        }
-
-        #question-en span.correct {
-            color: var(--correct-color);
-        }
-
-
-        #question-ja {
-            font-size: 1.5rem;
-            color: #666;
-            margin-bottom: 40px;
-        }
-
-        #input-box {
-            width: 80%;
-            padding: 15px;
-            font-size: 2rem;
-            text-align: center;
-            border: 3px solid var(--primary-color);
-            border-radius: var(--border-radius);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        #input-box.error {
-            border-color: #e74c3c;
-            animation: shake 0.3s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        .game-footer {
-            width: 100%;
-        }
-        
-        .home-btn {
-            background: #ccc;
-            color: #333;
-             padding: 15px 30px;
-            font-size: 1.2rem;
-        }
-
-        /* 結果画面のスタイル */
-        #result-screen h1 {
-            margin-bottom: 50px;
-        }
-        .result-details {
-            font-size: 2rem;
-            line-height: 2;
-        }
-        
-        #result-screen .btn-group {
-            display: flex;
-            gap: 20px;
-            margin-top: 50px;
-        }
-        
-        /* レスポンシブ対応 */
-        @media (max-width: 768px) {
-            .container {
-                border-radius: 0;
-            }
-            .screen {
-                padding: 20px;
-            }
-            h1 { font-size: 2.5rem; }
-            h2 { font-size: 1.5rem; }
-            .btn { font-size: 1.2rem; padding: 15px 20px; }
-            .grid-cols-2, .grid-cols-3 { grid-template-columns: 1fr; }
-            
-            .game-header { font-size: 1.2rem; }
-            #question-en { font-size: 2rem; min-height: 80px;}
-            #question-ja { font-size: 1.2rem; }
-            #input-box { font-size: 1.5rem; width: 90%; }
-            .result-details { font-size: 1.5rem; }
-            .back-btn { font-size: 1rem; padding: 8px 15px; top: 5px; left: 0; transform: none;}
-        }
-
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
+    
+    <div id="app-container">
 
-    <div class="container">
-        <!-- ホーム画面 -->
-        <div id="home-screen" class="screen">
+        <div id="home-screen" class="screen active">
             <h1>English Typing Game</h1>
-            <div class="selection-wrapper">
-                <div id="mode-selection" class="selection-container">
-                    <h2>ゲームモードを選択</h2>
-                    <div class="selection-grid grid-cols-2">
-                        <button class="btn mode-btn" data-mode="通常モード">通常モード</button>
-                        <button class="btn mode-btn" data-mode="瞬間英作文モード">瞬間英作文モード</button>
-                    </div>
-                </div>
+            
+            <div id="mode-selection" class="selection-container">
+                <h2>モードを選択</h2>
+                <button class="btn btn-mode" data-mode="easy">イージー</button>
+                <button class="btn btn-mode" data-mode="normal">ノーマル</button>
+                <button class="btn btn-mode" data-mode="hard">ハード</button>
+            </div>
 
-                <div id="session-selection" class="selection-container hidden">
-                    <h2><button class="btn back-btn" id="back-to-mode">戻る</button>セッションを選択</h2>
-                    <div class="selection-grid grid-cols-3">
-                        <button class="btn session-btn" data-session="名詞">名詞</button>
-                        <button class="btn session-btn" data-session="動詞">動詞</button>
-                        <button class="btn session-btn" data-session="意味順ドリル">意味順ドリル</button>
-                    </div>
-                </div>
+            <div id="session-selection" class="selection-container" style="display: none;">
+                <h2>セッションを選択</h2>
+                <button class="btn btn-session" data-session="quizData">意味順コース (quizData)</button>
+                <button class="btn btn-session" data-session="grammarQuizData">文法コース (grammarQuizData)</button>
+                <button class="btn btn-back" data-target="mode-selection">← モード選択に戻る</button>
+            </div>
 
-                <div id="course-selection" class="selection-container hidden">
-                    <h2><button class="btn back-btn" id="back-to-session">戻る</button>コースを選択</h2>
-                    <div id="course-grid" class="selection-grid grid-cols-3">
-                        <!-- コースボタンは動的に生成されます -->
+            <div id="course-selection" class="selection-container" style="display: none;">
+                <h2 id="course-title">コースを選択</h2>
+                <div id="course-grid">
                     </div>
-                </div>
+                <button class="btn btn-back" data-target="session-selection">← セッション選択に戻る</button>
             </div>
         </div>
 
-        <!-- ゲーム画面 -->
-        <div id="game-screen" class="screen hidden">
-            <header class="game-header">
-                <div id="score">Score: 0</div>
-                <div id="timer">Time: 60</div>
-            </header>
-            <main class="game-main">
-                <div id="question-en"></div>
-                <p id="question-ja"></p>
-                <input type="text" id="input-box" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            </main>
-            <footer class="game-footer">
-                 <button id="home-btn-ingame" class="btn home-btn">ホームに戻る</button>
-            </footer>
+        <div id="game-screen" class="screen">
+            <div id="game-header">
+                <div>Score: <span id="score">0</span></div>
+                <div>Time: <span id="timer">0</span></div>
+            </div>
+
+            <div id="problem-area">
+                <p id="ja-text">日本語訳がここに表示されます</p>
+                <p id="en-text">English text appears here</p>
+                <div id="en-text-hard">
+                    </div>
+            </div>
+
+            <input type="text" id="input-box" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+
+            <button id="home-btn" class="btn">ホームに戻る</button>
         </div>
 
-        <!-- 結果画面 -->
-        <div id="result-screen" class="screen hidden">
-            <h1>Result</h1>
-            <div class="result-details">
-                <p id="result-score"></p>
-                <p id="result-typed-chars"></p>
-                <p id="result-misses"></p>
+        <div id="result-screen" class="screen">
+            <h2 id="result-title">結果</h2>
+            <p id="result-message"></p>
+            <div id="result-details">
+                <p>獲得ポイント: <span id="final-score">0</span></p>
+                <p>タイプ文字数: <span id="total-typed">0</span></p>
+                <p>ミスタイプ数: <span id="miss-count">0</span></p>
             </div>
-            <div class="btn-group">
-                <button id="retry-btn" class="btn">もう一度挑戦</button>
-                <button id="home-btn-result" class="btn home-btn">ホームに戻る</button>
-            </div>
+            <button id="back-to-home-btn" class="btn">ホームに戻る</button>
         </div>
+
     </div>
 
-    <script>
-        // --- 問題データ ---
-        const gameData = {
-            "名詞": {
-                "人": [{"en":"man","ja":"男性、男の人"},{"en":"woman","ja":"女性、女の人"},{"en":"boy","ja":"男の子"},{"en":"girl","ja":"女の子"},{"en":"child","ja":"子ども"},{"en":"baby","ja":"赤ちゃん"},{"en":"family","ja":"家族"},{"en":"friend","ja":"友達"},{"en":"person","ja":"人"},{"en":"people","ja":"人々(複数)"},{"en":"student","ja":"学生"},{"en":"teacher","ja":"先生"},{"en":"doctor","ja":"医者"},{"en":"nurse","ja":"看護師"},{"en":"parent","ja":"親"},{"en":"mother","ja":"母"},{"en":"father","ja":"父"},{"en":"sister","ja":"姉妹"},{"en":"brother","ja":"兄弟"},{"en":"cousin","ja":"いとこ"}],
-                "場所": [{"en":"house","ja":"家"},{"en":"school","ja":"学校"},{"en":"park","ja":"公園"},{"en":"city","ja":"都市"},{"en":"town","ja":"町"},{"en":"store","ja":"店、小売店"},{"en":"room","ja":"部屋"},{"en":"street","ja":"通り、道"},{"en":"road","ja":"道路"},{"en":"bank","ja":"銀行"},{"en":"hospital","ja":"病院"},{"en":"office","ja":"事務所、オフィス"},{"en":"market","ja":"市場"},{"en":"restaurant","ja":"レストラン"},{"en":"station","ja":"駅"},{"en":"airport","ja":"空港"},{"en":"garden","ja":"庭"},{"en":"kitchen","ja":"台所"},{"en":"bedroom","ja":"寝室"},{"en":"bathroom","ja":"浴室、トイレ"}],
-                "家具": [{"en":"table","ja":"テーブル"},{"en":"chair","ja":"椅子"},{"en":"bed","ja":"ベッド"},{"en":"desk","ja":"机"},{"en":"sofa","ja":"ソファ"},{"en":"lamp","ja":"ランプ、電気スタンド"},{"en":"shelf","ja":"棚"},{"en":"bookcase","ja":"本棚"},{"en":"closet","ja":"クローゼット"},{"en":"curtain","ja":"カーテン"},{"en":"rug","ja":"ラグ、敷物"},{"en":"mirror","ja":"鏡"},{"en":"door","ja":"ドア"},{"en":"window","ja":"窓"},{"en":"television (TV)","ja":"テレビ"},{"en":"computer","ja":"コンピュータ"},{"en":"clock","ja":"時計(置時計・掛時計)"},{"en":"fan","ja":"扇風機"},{"en":"pillow","ja":"枕"},{"en":"blanket","ja":"毛布"}],
-                "筆記用具": [{"en":"pen","ja":"ペン"},{"en":"pencil","ja":"鉛筆"},{"en":"paper","ja":"紙"},{"en":"book","ja":"本"},{"en":"notebook","ja":"ノート"},{"en":"eraser","ja":"消しゴム"},{"en":"ruler","ja":"定規"},{"en":"marker","ja":"マーカー"},{"en":"crayon","ja":"クレヨン"},{"en":"glue","ja":"のり"},{"en":"scissors","ja":"はさみ"},{"en":"stapler","ja":"ホッチキス"},{"en":"folder","ja":"ファイル、フォルダ"},{"en":"bag","ja":"バッグ、カバン"},{"en":"dictionary","ja":"辞書"},{"en":"word","ja":"単語"},{"en":"sentence","ja":"文"},{"en":"chalk","ja":"チョーク"},{"en":"ink","ja":"インク"},{"en":"board","ja":"ボード(黒板・ホワイトボード)"}],
-                "動物": [{"en":"dog","ja":"犬"},{"en":"cat","ja":"猫"},{"en":"bird","ja":"鳥"},{"en":"fish","ja":"魚"},{"en":"horse","ja":"馬"},{"en":"cow","ja":"牛"},{"en":"pig","ja":"豚"},{"en":"sheep","ja":"羊"},{"en":"rabbit","ja":"ウサギ"},{"en":"mouse","ja":"ネズミ"},{"en":"elephant","ja":"象"},{"en":"lion","ja":"ライオン"},{"en":"tiger","ja":"虎"},{"en":"bear","ja":"熊"},{"en":"snake","ja":"蛇"},{"en":"insect","ja":"昆虫"},{"en":"monkey","ja":"猿"},{"en":"duck","ja":"アヒル"},{"en":"chicken","ja":"鶏"},{"en":"spider","ja":"クモ"}],
-                "食べ物と飲み物": [{"en":"water","ja":"水"},{"en":"juice","ja":"ジュース"},{"en":"milk","ja":"牛乳"},{"en":"coffee","ja":"コーヒー"},{"en":"tea","ja":"お茶"},{"en":"bread","ja":"パン"},{"en":"rice","ja":"米、ご飯"},{"en":"meat","ja":"肉"},{"en":"fish","ja":"魚(食材)"},{"en":"egg","ja":"卵"},{"en":"apple","ja":"りんご"},{"en":"banana","ja":"バナナ"},{"en":"orange","ja":"オレンジ"},{"en":"vegetable","ja":"野菜"},{"en":"cheese","ja":"チーズ"},{"en":"soup","ja":"スープ"},{"en":"salad","ja":"サラダ"},{"en":"fruit","ja":"果物"},{"en":"sugar","ja":"砂糖"},{"en":"salt","ja":"塩"}],
-                "体の部位": [{"en":"head","ja":"頭"},{"en":"face","ja":"顔"},{"en":"eye","ja":"目"},{"en":"ear","ja":"耳"},{"en":"nose","ja":"鼻"},{"en":"mouth","ja":"口"},{"en":"tooth","ja":"歯"},{"en":"hair","ja":"髪"},{"en":"hand","ja":"手"},{"en":"arm","ja":"腕"},{"en":"leg","ja":"脚"},{"en":"foot","ja":"足(足首から下)"},{"en":"finger","ja":"指(手)"},{"en":"neck","ja":"首"},{"en":"shoulder","ja":"肩"},{"en":"stomach","ja":"胃、お腹"},{"en":"heart","ja":"心臓"},{"en":"back","ja":"背中"},{"en":"skin","ja":"皮膚"},{"en":"body","ja":"体、身体"}],
-                "職業": [{"en":"teacher","ja":"先生"},{"en":"student","ja":"学生"},{"en":"doctor","ja":"医者"},{"en":"nurse","ja":"看護師"},{"en":"engineer","ja":"エンジニア"},{"en":"driver","ja":"運転手"},{"en":"police officer","ja":"警察官"},{"en":"firefighter","ja":"消防士"},{"en":"chef","ja":"料理人、シェフ"},{"en":"singer","ja":"歌手"},{"en":"actor","ja":"俳優"},{"en":"writer","ja":"作家"},{"en":"manager","ja":"マネージャー、管理者"},{"en":"salesperson","ja":"販売員"},{"en":"worker","ja":"労働者"},{"en":"farmer","ja":"農家"},{"en":"pilot","ja":"パイロット"},{"en":"secretary","ja":"秘書"},{"en":"dentist","ja":"歯医者"},{"en":"artist","ja":"芸術家"}],
-                "色": [{"en":"red","ja":"赤"},{"en":"blue","ja":"青"},{"en":"yellow","ja":"黄色"},{"en":"green","ja":"緑"},{"en":"black","ja":"黒"},{"en":"white","ja":"白"},{"en":"orange","ja":"オレンジ色"},{"en":"purple","ja":"紫"},{"en":"pink","ja":"ピンク"},{"en":"brown","ja":"茶色"},{"en":"gray","ja":"灰色"},{"en":"gold","ja":"金色"},{"en":"silver","ja":"銀色"},{"en":"color","ja":"色(カテゴリ名)"},{"en":"light","ja":"薄い、明るい(修飾語)"},{"en":"dark","ja":"濃い、暗い(修飾語)"},{"en":"rainbow","ja":"虹"},{"en":"shade","ja":"色合い、陰影"},{"en":"hue","ja":"色相"},{"en":"tone","ja":"色調"}],
-                "スポーツ": [{"en":"soccer","ja":"サッカー"},{"en":"baseball","ja":"野球"},{"en":"basketball","ja":"バスケットボール"},{"en":"tennis","ja":"テニス"},{"en":"golf","ja":"ゴルフ"},{"en":"swimming","ja":"水泳"},{"en":"running","ja":"走ること"},{"en":"skiing","ja":"スキー"},{"en":"volleyball","ja":"バレーボール"},{"en":"hockey","ja":"ホッケー"},{"en":"rugby","ja":"ラグビー"},{"en":"boxing","ja":"ボクシング"},{"en":"karate","ja":"空手"},{"en":"yoga","ja":"ヨガ"},{"en":"game","ja":"試合、ゲーム"},{"en":"team","ja":"チーム"},{"en":"ball","ja":"ボール"},{"en":"player","ja":"選手"},{"en":"field","ja":"グラウンド、野原"},{"en":"sport","ja":"スポーツ(カテゴリ名)"}],
-                "教科": [{"en":"English","ja":"英語"},{"en":"math","ja":"数学"},{"en":"science","ja":"理科"},{"en":"history","ja":"歴史"},{"en":"geography","ja":"地理"},{"en":"art","ja":"美術"},{"en":"music","ja":"音楽"},{"en":"P.E.","ja":"体育"},{"en":"computer","ja":"コンピュータ(情報)"},{"en":"chemistry","ja":"化学"},{"en":"physics","ja":"物理"},{"en":"biology","ja":"生物"},{"en":"foreign language","ja":"外国語"},{"en":"class","ja":"授業"},{"en":"subject","ja":"教科(カテゴリ名)"},{"en":"test","ja":"テスト"},{"en":"homework","ja":"宿題"},{"en":"lesson","ja":"授業、レッスン"},{"en":"reading","ja":"読書(科目)"},{"en":"writing","ja":"作文(科目)"}]
-            },
-            "動詞": {
-                "コース 1": [{"en":"be","ja":"〜である、存在する"},{"en":"have","ja":"持っている、ある"},{"en":"do","ja":"する"},{"en":"say","ja":"言う"},{"en":"go","ja":"行く"},{"en":"can","ja":"〜できる"},{"en":"get","ja":"得る、なる、着く"},{"en":"would","ja":"〜だろう"},{"en":"make","ja":"作る"},{"en":"know","ja":"知っている"},{"en":"will","ja":"〜だろう"},{"en":"think","ja":"考える、思う"},{"en":"take","ja":"取る、連れて行く"},{"en":"see","ja":"見る"},{"en":"come","ja":"来る"},{"en":"could","ja":"〜できた、〜かもしれない"},{"en":"want","ja":"欲しい、〜したい"},{"en":"look","ja":"見る"},{"en":"use","ja":"使う"},{"en":"find","ja":"見つける"}],
-                "コース 2": [{"en":"give","ja":"与える"},{"en":"tell","ja":"伝える、教える"},{"en":"work","ja":"働く、機能する"},{"en":"may","ja":"〜かもしれない"},{"en":"should","ja":"〜すべきである"},{"en":"call","ja":"呼ぶ、電話する"},{"en":"try","ja":"試す、努力する"},{"en":"ask","ja":"尋ねる、頼む"},{"en":"need","ja":"必要とする"},{"en":"feel","ja":"感じる"},{"en":"become","ja":"〜になる"},{"en":"leave","ja":"離れる、残す"},{"en":"put","ja":"置く"},{"en":"mean","ja":"意味する"},{"en":"keep","ja":"保つ、維持する"},{"en":"let","ja":"〜させる"},{"en":"begin","ja":"始める"},{"en":"seem","ja":"〜のように見える"},{"en":"help","ja":"助ける"},{"en":"talk","ja":"話す"}],
-                "コース 3": [{"en":"turn","ja":"曲がる、回す"},{"en":"start","ja":"始める"},{"en":"might","ja":"〜かもしれない"},{"en":"show","ja":"見せる"},{"en":"hear","ja":"聞こえる"},{"en":"play","ja":"遊ぶ、演奏する"},{"en":"run","ja":"走る"},{"en":"move","ja":"動く"},{"en":"like","ja":"〜が好きだ"},{"en":"live","ja":"住む、生きる"},{"en":"believe","ja":"信じる"},{"en":"hold","ja":"持つ、握る、保つ"},{"en":"bring","ja":"持ってくる"},{"en":"happen","ja":"起こる"},{"en":"must","ja":"〜しなければならない"},{"en":"write","ja":"書く"},{"en":"provide","ja":"提供する"},{"en":"sit","ja":"座る"},{"en":"stand","ja":"立つ"},{"en":"lose","ja":"失う、負ける"}],
-                "コース 4": [{"en":"pay","ja":"支払う"},{"en":"meet","ja":"会う"},{"en":"include","ja":"含む"},{"en":"continue","ja":"続ける"},{"en":"set","ja":"置く、設定する"},{"en":"learn","ja":"学ぶ"},{"en":"change","ja":"変える"},{"en":"lead","ja":"導く"},{"en":"understand","ja":"理解する"},{"en":"watch","ja":"見る、監視する"},{"en":"follow","ja":"従う"},{"en":"stop","ja":"止まる、やめる"},{"en":"create","ja":"創造する"},{"en":"speak","ja":"話す"},{"en":"read","ja":"読む"},{"en":"allow","ja":"許す"},{"en":"add","ja":"加える"},{"en":"spend","ja":"費やす、過ごす"},{"en":"grow","ja":"成長する、育つ"},{"en":"open","ja":"開ける"}],
-                "コース 5": [{"en":"walk","ja":"歩く"},{"en":"win","ja":"勝つ"},{"en":"offer","ja":"提供する"},{"en":"remember","ja":"覚えている"},{"en":"love","ja":"愛する"},{"en":"consider","ja":"考慮する"},{"en":"appear","ja":"現れる"},{"en":"buy","ja":"買う"},{"en":"wait","ja":"待つ"},{"en":"serve","ja":"奉仕する"},{"en":"die","ja":"死ぬ"},{"en":"send","ja":"送る"},{"en":"expect","ja":"期待する"},{"en":"build","ja":"建てる"},{"en":"stay","ja":"留まる、滞在する"},{"en":"fall","ja":"落ちる"},{"en":"cut","ja":"切る"},{"en":"reach","ja":"届く、達する"},{"en":"kill","ja":"殺す"},{"en":"remain","ja":"〜のままである、残る"}]
-            },
-            "意味順ドリル": {
-                "パターン1 (S+V/C)": [{"en":"I am Edward Trout.","ja":"私はエドワード・トラウトです。"},{"en":"Are you an anime fan?","ja":"あなたはアニメのファンですか。"},{"en":"Be brave.","ja":"勇気を出して。"},{"en":"Don't worry.","ja":"心配しないで。"},{"en":"The children look happy.","ja":"子供たちは幸せそうに見えます。"},{"en":"Talking with him was fun.","ja":"彼と話すことは楽しかったです。"},{"en":"My sister sings well.","ja":"私の姉は歌が上手です。"},{"en":"The sky is blue.","ja":"空は青いです。"},{"en":"She became a teacher.","ja":"彼女は先生になりました。"},{"en":"We work hard.","ja":"私たちは一生懸命働きます。"},{"en":"The door opened.","ja":"ドアが開きました。"},{"en":"The food tastes salty.","ja":"その食べ物は塩辛い味がします。"},{"en":"Everyone smiled.","ja":"みんなが微笑みました。"},{"en":"The baby is sleeping.","ja":"赤ちゃんは眠っています。"},{"en":"I feel fine today.","ja":"私は今日気分がいいです。"},{"en":"He waited patiently.","ja":"彼は辛抱強く待ちました。"},{"en":"Please sit down.","ja":"どうぞお座りください。"},{"en":"This plan sounds great.","ja":"この計画は素晴らしそうです。"},{"en":"The concert ended at nine.","ja":"コンサートは9時に終わりました。"},{"en":"It is snowing outside.","ja":"外は雪が降っています。"}],
-                "パターン2 (S+V+O)": [{"en":"I like Japanese sweets.","ja":"私は日本の甘い菓子が好きです。"},{"en":"I can make gyoza.","ja":"私はぎょうざを作ることができます。"},{"en":"I will make a reservation.","ja":"私が予約をしましょう。"},{"en":"You have to speak English.","ja":"あなたは英語を話さなければなりません。"},{"en":"They enjoy reading books.","ja":"彼らは本を読むことを楽しみます。"},{"en":"She wants to help people in need.","ja":"彼女は困っている人々を助けたいと思っています。"},{"en":"We bought a new bicycle.","ja":"私たちは新しい自転車を買いました。"},{"en":"I don't know the answer.","ja":"私はその答えを知りません。"},{"en":"Did you see the news?","ja":"あなたはそのニュースを見ましたか。"},{"en":"He should finish his homework.","ja":"彼は宿題を終えるべきです。"},{"en":"I have lost my wallet.","ja":"私は財布をなくしてしまいました。"},{"en":"She needs some advice.","ja":"彼女はいくつか助言が必要です。"},{"en":"Let's discuss the problem.","ja":"その問題について話し合いましょう。"},{"en":"The team won the game.","ja":"そのチームは試合に勝ちました。"},{"en":"I must protect my family.","ja":"私は家族を守らなければなりません。"},{"en":"We are going to visit the museum.","ja":"私たちは美術館を訪れるつもりです。"},{"en":"Please turn off the light.","ja":"どうぞ電気を消してください。"},{"en":"He missed the train.","ja":"彼はその電車に乗り遅れました。"},{"en":"I often watch American movies.","ja":"私はよくアメリカ映画を見ます。"},{"en":"They avoided talking about politics.","ja":"彼らは政治について話すのを避けました。"}],
-                "パターン3 (S+V+O+O)": [{"en":"I will show you some pictures.","ja":"私があなたに何枚か写真を見せましょう。"},{"en":"Let us tell you about sea otters.","ja":"ラッコについて伝えさせてください。"},{"en":"The story shows me that anything is possible.","ja":"その話は私にどんなことでも可能だということを示してくれます。"},{"en":"My father gave me a new watch.","ja":"私の父は私に新しい腕時計をくれました。"},{"en":"Can you lend me a pen?","ja":"私にペンを貸してくれますか。"},{"en":"I bought him a cup of coffee.","ja":"私は彼にコーヒーを一杯買いました。"},{"en":"She taught us English.","ja":"彼女は私たちに英語を教えました。"},{"en":"Please pass me the salt.","ja":"どうぞ私に塩を取ってください。"},{"en":"I sent an email to my teacher.","ja":"私は先生にEメールを送りました。"},{"en":"He explained the rule to us.","ja":"彼は私たちにルールを説明しました。"},{"en":"They offered her a good job.","ja":"彼らは彼女に良い仕事を提案しました。"},{"en":"I made a cake for my mother.","ja":"私は母にケーキを作りました。"},{"en":"Will you read me this letter?","ja":"この手紙を私に読んでくれますか。"},{"en":"She promised her daughter a trip.","ja":"彼女は娘に旅行を約束しました。"},{"en":"I will bring you some tea.","ja":"あなたに紅茶を持ってきましょう。"},{"en":"Show your ticket to the staff.","ja":"スタッフにあなたのチケットを見せてください。"},{"en":"They asked me a difficult question.","ja":"彼らは私に難しい質問をしました。"},{"en":"We must save seats for our guests.","ja":"私たちはゲストのために席を取っておかねばなりません。"},{"en":"Tell me your full name.","ja":"私にあなたのフルネームを教えてください。"},{"en":"He found a nice spot for his friends.","ja":"彼は友達のためにいい場所を見つけました。"}],
-                "パターン4 (S+V+O+C)": [{"en":"People call this area Little India.","ja":"人々はこの区域をリトル・インディアと呼びます。"},{"en":"Anime songs make me happy.","ja":"アニメソングは私を幸せにします。"},{"en":"I want everyone to know about this problem.","ja":"私は全ての人にこの問題を知ってほしいです。"},{"en":"We found the box empty.","ja":"私たちはその箱が空だと分かりました。"},{"en":"They named their daughter Sakura.","ja":"彼らは娘をサクラと名付けました。"},{"en":"The news made us sad.","ja":"その知らせは私たちを悲しませました。"},{"en":"He kept the room clean.","ja":"彼は部屋をきれいに保ちました。"},{"en":"I want him to apologize.","ja":"私は彼に謝ってほしいです。"},{"en":"My teacher told us to open our books.","ja":"先生は私たちに本を開くように言いました。"},{"en":"The bright sun turned the leaves yellow.","ja":"明るい太陽が葉を黄色に変えました。"},{"en":"We believe him honest.","ja":"私たちは彼が正直だと信じています。"},{"en":"They elected her president.","ja":"彼らは彼女を大統領に選びました。"},{"en":"Don't leave the door unlocked.","ja":"ドアの鍵を開けたままにしないでください。"},{"en":"I saw him running away.","ja":"私は彼が逃げ去るのを見ました。"},{"en":"We think the result amazing.","ja":"私たちはその結果を驚くべきものだと思います。"},{"en":"They painted the wall green.","ja":"彼らは壁を緑色に塗りました。"},{"en":"I heard my name called.","ja":"私は自分の名前が呼ばれるのを聞きました。"},{"en":"The doctor advised him to rest.","ja":"医者は彼に休むように忠告しました。"},{"en":"She had the waiter bring the check.","ja":"彼女はウェイターに勘定書きを持ってこさせました。"},{"en":"I consider this point important.","ja":"私はこの点が重要だと考えます。"}],
-                "パターン5 (場所/時間)": [{"en":"Fumiya lives in Hawaii.","ja":"文也はハワイに住んでいます。"},{"en":"I come to school on Mondays.","ja":"私は月曜日に学校に来ます。"},{"en":"I stayed in Canada last winter.","ja":"私は昨年の冬にカナダに滞在しました。"},{"en":"I am watching TV now.","ja":"私は今、テレビを見ています。"},{"en":"I have lived in Japan for five years.","ja":"私は5年間ずっと日本に住んでいます。"},{"en":"When I go to a ramen restaurant, I order tonkotsu ramen.","ja":"私はラーメン店に行くとき、豚骨ラーメンを注文します。"},{"en":"If you have time, you can come.","ja":"もし時間があれば、あなたは来ることができます。"},{"en":"We had dinner at home yesterday.","ja":"私たちは昨日、家で夕食を食べました。"},{"en":"He runs very fast.","ja":"彼はとても速く走ります。"},{"en":"She studies English every day.","ja":"彼女は毎日英語を勉強します。"},{"en":"They arrived at the station late.","ja":"彼らは駅に遅れて到着しました。"},{"en":"I will call you after school.","ja":"私は放課後あなたに電話します。"},{"en":"We are going to the beach this summer.","ja":"私たちは今年の夏、ビーチに行くつもりです。"},{"en":"The meeting was held in the biggest room.","ja":"会議は一番大きな部屋で開かれました。"},{"en":"She always speaks politely.","ja":"彼女はいつも丁寧に話します。"},{"en":"You should read the manual carefully.","ja":"あなたはマニュアルを注意深く読むべきです。"},{"en":"Because the train was delayed, I was late.","ja":"電車が遅れたので、私は遅刻しました。"},{"en":"I found my key under the chair.","ja":"私は椅子のもとで鍵を見つけました。"},{"en":"He finished the work easily.","ja":"彼は簡単にその仕事を終えました。"},{"en":"I visit my grandparents twice a month.","ja":"私は月に2回、祖父母を訪ねます。"}],
-                "パターン6 (不定詞/動名詞)": [{"en":"It is important to look at the children's faces.","ja":"子供たちの顔を見ることが大切です。"},{"en":"She has a lot of work to do.","ja":"彼女にはするべき多くの仕事があります。"},{"en":"I use a computer to study English.","ja":"私は英語を勉強するためにコンピュータを使います。"},{"en":"I am happy to hear that.","ja":"私はそれを聞いてうれしいです。"},{"en":"It is important for us to understand this problem.","ja":"私たちがこの問題を理解することが重要です。"},{"en":"They enjoy reading books.","ja":"彼らは本を読むことを楽しみます。"},{"en":"Talking with him was fun.","ja":"彼と話すことは楽しかったです。"},{"en":"To speak clearly is my goal.","ja":"はっきりと話すことが私の目標です。"},{"en":"I decided to try the new cafe.","ja":"私は新しいカフェを試すことを決めました。"},{"en":"We went to the park to take a rest.","ja":"私たちは休憩するために公園に行きました。"},{"en":"He was surprised to see the damage.","ja":"彼はその損害を見て驚きました。"},{"en":"It is easy to remember those words.","ja":"それらの言葉を覚えるのは簡単です。"},{"en":"It is kind of you to help us.","ja":"私たちを助けてくれるなんて、あなたは親切です。"},{"en":"I want something cold to drink.","ja":"私は何か冷たい飲み物がほしいです。"},{"en":"My job is to help customers.","ja":"私の仕事は顧客を助けることです。"},{"en":"He is too busy to join the meeting.","ja":"彼は忙しすぎて会議に参加できません。"},{"en":"It is necessary for everyone to follow the rules.","ja":"全員がルールに従うことが必要です。"},{"en":"Stopping pollution is essential for the future.","ja":"汚染を止めることは未来にとって不可欠です。"},{"en":"I don't mind waiting for a long time.","ja":"私は長時間待つことは気にしません。"},{"en":"His dream is traveling around the world.","ja":"彼の夢は世界中を旅することです。"}],
-                "パターン7 (関係代名詞)": [{"en":"Gandhi is a man who has influenced a lot of people.","ja":"ガンディーは多くの人々に影響を与えた人です。"},{"en":"This is a movie that makes people happy.","ja":"これは人々を幸せにする映画です。"},{"en":"This is a picture I found on the internet.","ja":"これは私がインターネットで見つけた写真です。"},{"en":"Many things that we see every day come from overseas.","ja":"私たちが毎日目にする多くのものは海外から来ています。"},{"en":"The woman smiling in a kimono is Taylor.","ja":"着物を着てほほえんでいる女性はテイラーです。"},{"en":"She has a friend who lives in London.","ja":"彼女にはロンドンに住んでいる友達がいます。"},{"en":"The car that broke down was very old.","ja":"故障した車はとても古かったです。"},{"en":"I read the book that you recommended.","ja":"私はあなたが推薦した本を読みました。"},{"en":"This is the gift I received from my parents.","ja":"これが両親から受け取ったプレゼントです。"},{"en":"The man talking on the phone is the manager.","ja":"電話で話している男性がマネージャーです。"},{"en":"We visited the museum built in 1900.","ja":"私たちは1900年に建てられた美術館を訪れました。"},{"en":"I can't remember the name of the place where we met.","ja":"私たちが会った場所の名前を思い出せません。"},{"en":"Do you know the reason why he quit?","ja":"彼がやめた理由を知っていますか。"},{"en":"Tell me the way you solved the problem.","ja":"あなたがその問題を解決した方法を教えてください。"},{"en":"I need a person whose job is similar to mine.","ja":"私は仕事が私と似ている人が必要です。"},{"en":"What I want most is peace.","ja":"私が最も欲しいものは平和です。"},{"en":"Please tell me what you think about this issue.","ja":"この問題についてあなたがどう思うか教えてください。"},{"en":"The rule which must be obeyed is simple.","ja":"守らなければならないルールは単純です。"},{"en":"Look at the pictures taken by him.","ja":"彼によって撮られた写真を見てください。"},{"en":"I often talk with my mother, who is a doctor.","ja":"私はよく医者である母と話します。"}],
-                "パターン8 (受動態/There is)": [{"en":"The Taj Mahal is loved by many people.","ja":"タージ・マハルは多くの人々に愛されています。"},{"en":"Mt. Fuji will be enjoyed by people forever.","ja":"富士山は永遠に人々に楽しまれるでしょう。"},{"en":"There is a campground near the lake.","ja":"湖の近くにキャンプ場があります。"},{"en":"There is a movie called Live Your Dream.","ja":"Live Your Dreamと呼ばれる映画があります。"},{"en":"This building was built in 1950.","ja":"この建物は1950年に建てられました。"},{"en":"English is spoken in many countries.","ja":"英語は多くの国で話されています。"},{"en":"The report must be finished by tomorrow.","ja":"その報告書は明日までに終えられなければなりません。"},{"en":"Was the window broken by the wind?","ja":"その窓は風によって割られましたか。"},{"en":"I was surprised at the news.","ja":"私はその知らせに驚きました。"},{"en":"The book has been read by millions.","ja":"その本は何百万もの人々に読まれてきました。"},{"en":"My bike is being fixed now.","ja":"私の自転車は今、修理されているところです。"},{"en":"There are two coffee shops on this street.","ja":"この通りには2軒のコーヒーショップがあります。"},{"en":"There was a large crowd in the square.","ja":"広場には大きな群衆がいました。"},{"en":"The new museum will be opened next month.","ja":"新しい美術館は来月開館するでしょう。"},{"en":"The stadium is known all over the world.","ja":"そのスタジアムは世界中で知られています。"},{"en":"The accident was caused by human error.","ja":"その事故は人為的なミスによって引き起こされました。"},{"en":"There will be a concert in the park next week.","ja":"来週、公園でコンサートがあるでしょう。"},{"en":"The box was filled with old pictures.","ja":"その箱は古い写真でいっぱいでした。"},{"en":"A lot of energy is saved by this system.","ja":"このシステムによって多くエネルギーが節約されます。"},{"en":"Is there anything wrong with my answer?","ja":"私の答えに何か間違いはありますか。"}],
-                "パターン9 (仮定法)": [{"en":"I wish I could go to school.","ja":"学校に行くことができればいいのになあ。"},{"en":"If I were you, I would ask my friends for help.","ja":"もし私があなたなら、友達に助けを求めるでしょう。"},{"en":"If I had a school backpack, I would donate it.","ja":"もし私がランドセルを持っていれば、寄付するでしょう。"},{"en":"I wish I had more time to read.","ja":"もっと読書する時間があればいいのになあ。"},{"en":"If I were an animal, I would be a dolphin.","ja":"もし私が動物なら、イルカになるでしょう。"},{"en":"If she were here, she would know what to do.","ja":"もし彼女がここにいれば、何をすべきかわかるだろうに。"},{"en":"He acts as if he were a leader.","ja":"彼はまるでリーダーであるかのように振る舞います。"},{"en":"If it were sunny, we could go hiking.","ja":"もし晴れていたら、ハイキングに行けるのに。"},{"en":"I wish I didn't have to work this weekend.","ja":"今週末、仕事をしなくて済めばいいのに。"},{"en":"What would you do if you won the lottery?","ja":"もし宝くじに当たったら、何をしますか。"},{"en":"If they changed the rule, the game would be better.","ja":"もし彼らがルールを変えたら、試合はもっとよくなるだろうに。"},{"en":"I wish I knew the answer to that question.","ja":"あの質問の答えを知っていればいいのに。"},{"en":"If I spoke French, I could live in Paris.","ja":"もし私がフランス語を話せたら、パリに住めるのに。"},{"en":"She looked as if she hadn't slept for days.","ja":"彼女はまるで数日間寝ていないかのように見えました。"},{"en":"I wish I could fly to the moon.","ja":"月に飛んで行けたらいいのになあ。"},{"en":"If I had studied harder, I would have passed the exam.","ja":"もしもっと一生懸命勉強していたら、試験に合格していただろうに。"},{"en":"If I became a doctor, I would help people in need.","ja":"もし私が医者になったら、困っている人々を助けるだろう。"},{"en":"You could get better results if you tried this method.","ja":"もしこの方法を試したら、あなたはより良い結果を得られるでしょう。"},{"en":"I wish I hadn't said those words.","ja":"あの言葉を言わなければよかったのに。"},{"en":"If we worked together, we would finish faster.","ja":"もし私たちが一緒に働けば、もっと早く終わるだろう。"}]
-            }
-        };
-
-        // --- DOM要素 ---
-        const screens = { home: document.getElementById('home-screen'), game: document.getElementById('game-screen'), result: document.getElementById('result-screen') };
-        const modeSelection = document.getElementById('mode-selection');
-        const sessionSelection = document.getElementById('session-selection');
-        const courseSelection = document.getElementById('course-selection');
-        const courseGrid = document.getElementById('course-grid');
-        const scoreDisplay = document.getElementById('score');
-        const timerDisplay = document.getElementById('timer');
-        const questionEnDisplay = document.getElementById('question-en');
-        const questionJaDisplay = document.getElementById('question-ja');
-        const inputBox = document.getElementById('input-box');
-        const resultScore = document.getElementById('result-score');
-        const resultTypedChars = document.getElementById('result-typed-chars');
-        const resultMisses = document.getElementById('result-misses');
-        
-        // --- ゲーム状態変数 ---
-        let currentMode = '';
-        let currentSession = '';
-        let currentCourse = '';
-        let questions = [];
-        let currentQuestionIndex = 0;
-        let score = 0;
-        let timeLeft = 60;
-        let timerInterval = null;
-        let misses = 0;
-        let totalTypedChars = 0;
-        let isPerfect = true;
-
-        // --- 画面遷移ロジック ---
-        function showScreen(screenName) {
-            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
-            screens[screenName].classList.remove('hidden');
-        }
-        
-        function showSelection(selectionName) {
-            [modeSelection, sessionSelection, courseSelection].forEach(sel => sel.classList.add('hidden'));
-            document.getElementById(selectionName).classList.remove('hidden');
-        }
-
-        function goHome() {
-            clearInterval(timerInterval);
-            showScreen('home');
-            showSelection('mode-selection');
-        }
-
-        // --- ホーム画面の選択ロジック ---
-        document.querySelectorAll('.mode-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                currentMode = e.target.dataset.mode;
-                showSelection('session-selection');
-            });
-        });
-        
-        document.querySelectorAll('.session-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                currentSession = e.target.dataset.session;
-                populateCourses(currentSession);
-                showSelection('course-selection');
-            });
-        });
-        
-        document.getElementById('back-to-mode').addEventListener('click', () => showSelection('mode-selection'));
-        document.getElementById('back-to-session').addEventListener('click', () => showSelection('session-selection'));
-
-
-        function populateCourses(session) {
-            courseGrid.innerHTML = '';
-            const courses = Object.keys(gameData[session]);
-            courses.forEach(course => {
-                const button = document.createElement('button');
-                button.className = 'btn course-btn';
-                button.textContent = course;
-                button.onclick = () => {
-                    currentCourse = course;
-                    startGame();
-                };
-                courseGrid.appendChild(button);
-            });
-        }
-
-        // --- ゲームメインロジック ---
-        function startGame() {
-            questions = [...gameData[currentSession][currentCourse]].sort(() => 0.5 - Math.random());
-            currentQuestionIndex = 0;
-            score = 0;
-            misses = 0;
-            totalTypedChars = 0;
-            timeLeft = 60;
-            isPerfect = true;
-
-            scoreDisplay.textContent = `Score: ${score}`;
-            timerDisplay.textContent = `Time: ${timeLeft}`;
-            showScreen('game');
-            
-            displayNextQuestion();
-            startTimer();
-            // 画面遷移後にフォーカスを当てる
-            setTimeout(() => inputBox.focus(), 50);
-        }
-
-        function displayNextQuestion() {
-            if (currentQuestionIndex >= questions.length || timeLeft <= 0) {
-                endGame();
-                return;
-            }
-            isPerfect = true;
-            const question = questions[currentQuestionIndex];
-            
-            questionEnDisplay.innerHTML = '';
-
-            if (currentMode === '瞬間英作文モード') {
-                // 瞬間英作文モード: プレースホルダーを表示
-                question.en.split('').forEach(char => {
-                    const span = document.createElement('span');
-                    span.textContent = char === ' ' ? '\u00A0' : '_';
-                    questionEnDisplay.appendChild(span);
-                });
-            } else {
-                // 通常モード: 英語テキストを表示
-                question.en.split('').forEach(char => {
-                    const span = document.createElement('span');
-                    span.textContent = char === ' ' ? '\u00A0' : char;
-                    questionEnDisplay.appendChild(span);
-                });
-            }
-
-            questionJaDisplay.textContent = question.ja;
-            inputBox.value = '';
-            inputBox.focus();
-        }
-
-        function startTimer() {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = `Time: ${timeLeft}`;
-                if (timeLeft <= 0) {
-                    endGame();
-                }
-            }, 1000);
-        }
-
-        inputBox.addEventListener('input', () => {
-            if (!questions[currentQuestionIndex]) return;
-            const currentText = questions[currentQuestionIndex].en;
-            const inputText = inputBox.value;
-            const spans = questionEnDisplay.querySelectorAll('span');
-
-            // 文字の正誤判定とハイライト/文字表示
-            spans.forEach((span, index) => {
-                const isCorrectChar = index < inputText.length && inputText[index] === currentText[index];
-                
-                if (isCorrectChar) {
-                    span.classList.add('correct');
-                    if (currentMode === '瞬間英作文モード') {
-                        span.textContent = currentText[index] === ' ' ? '\u00A0' : currentText[index];
-                    }
-                } else {
-                    span.classList.remove('correct');
-                    if (currentMode === '瞬間英作文モード') {
-                        span.textContent = currentText[index] === ' ' ? '\u00A0' : '_';
-                    }
-                }
-            });
-
-            if (inputText === currentText) {
-                // 正解
-                let questionScore = currentText.length * 10;
-                if (isPerfect) {
-                    questionScore *= 2;
-                }
-                score += questionScore;
-                totalTypedChars += currentText.length;
-                scoreDisplay.textContent = `Score: ${score}`;
-                
-                currentQuestionIndex++;
-                setTimeout(displayNextQuestion, 200);
-            } else if (!currentText.startsWith(inputText)) {
-                // タイプミス
-                misses++;
-                timeLeft = Math.max(0, timeLeft - 3);
-                timerDisplay.textContent = `Time: ${timeLeft}`;
-                isPerfect = false;
-
-                let correctPart = '';
-                for (let i = 0; i < inputText.length; i++) {
-                    if (inputText[i] === currentText[i]) {
-                        correctPart += inputText[i];
-                    } else {
-                        break;
-                    }
-                }
-                inputBox.value = correctPart;
-                
-                inputBox.classList.add('error');
-                setTimeout(() => inputBox.classList.remove('error'), 300);
-                if(timeLeft <= 0) endGame();
-            }
-        });
-
-        function endGame() {
-            clearInterval(timerInterval);
-            showScreen('result');
-            resultScore.textContent = `獲得ポイント: ${score}`;
-            resultTypedChars.textContent = `タイプ文字数: ${totalTypedChars}`;
-            resultMisses.textContent = `ミスタイプ数: ${misses}`;
-        }
-        
-        document.getElementById('retry-btn').addEventListener('click', startGame);
-        document.getElementById('home-btn-result').addEventListener('click', goHome);
-        document.getElementById('home-btn-ingame').addEventListener('click', goHome);
-
-        // 初期画面表示
-        goHome();
-    </script>
+    <script src="quizData.js"></script>
+    <script src="grammarQuizData.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
-
