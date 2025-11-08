@@ -13,9 +13,9 @@ let progress = {
 };
 
 const GAME_SETTINGS = {
-    easy:   { totalTime: 60, problemTime: 20, clearScore: 1000, name: "イージー" },
-    normal: { totalTime: 90, problemTime: 10, clearScore: 3000, name: "ノーマル" },
-    hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード" }
+    easy:   { totalTime: 60, problemTime: 20, clearScore: 2000, name: "イージー" },
+    normal: { totalTime: 90, problemTime: 10, clearScore: 4000, name: "ノーマル" },
+    hard:   { totalTime: 90, problemTime: 10, clearScore: 10000, name: "ハード" }
 };
 
 // ゲーム状態
