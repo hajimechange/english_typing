@@ -13,9 +13,9 @@ let progress = {
 };
 
 const GAME_SETTINGS = {
-    easy:   { totalTime: 60, problemTime: 20, clearScore: 2000, name: "イージー" },
-    normal: { totalTime: 90, problemTime: 10, clearScore: 4000, name: "ノーマル" },
-    hard:   { totalTime: 90, problemTime: 10, clearScore: 10000, name: "ハード" }
+    easy:   { totalTime: 60, problemTime: 20, clearScore: 1000, name: "イージー" },
+    normal: { totalTime: 90, problemTime: 10, clearScore: 3000, name: "ノーマル" },
+    hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード" }
 };
 
 // ゲーム状態
@@ -65,6 +65,14 @@ const resultMessageEl = document.getElementById("result-message");
 const finalScoreEl = document.getElementById("final-score");
 const totalTypedEl = document.getElementById("total-typed");
 const missCountEl = document.getElementById("miss-count");
+
+// ★修正: 効果音ファイルの読み込み (sounds/ フォルダを指定)
+const audioStart = new Audio('sounds/start.mp3');
+const audioType = new Audio('sounds/type1.mp3');
+const audioIncorrect = new Audio('sounds/incorrect.mp3');
+const audioSuccess = new Audio('sounds/success.mp3');
+const audioFinish = new Audio('sounds/finish.mp3');
+
 
 // --- 初期化処理 ---
 document.addEventListener("DOMContentLoaded", initialize);
@@ -143,7 +151,6 @@ function setupEventListeners() {
 
     // 戻るボタン
     document.querySelectorAll(".btn-back").forEach(btn => {
-        // ★修正1: ここのロジックは前回のでOK (data-targetが "mode" や "session" になったため)
         btn.addEventListener("click", () => showHomeScreen(btn.dataset.target));
     });
 
@@ -226,7 +233,6 @@ function updateCourseDisplay() {
         const btn = document.createElement("button");
         btn.classList.add("btn", "course-btn");
         
-        // ★修正2: ボタンのテキストを全文表示に変更
         btn.textContent = `Course ${index + 1}: ${course.name}`;
         
         if (index <= maxCleared) {
@@ -260,6 +266,10 @@ function selectCourse(index) {
  * ゲーム開始
  */
 function startGame() {
+    // ゲーム開始音を再生
+    audioStart.currentTime = 0;
+    audioStart.play().catch(e => console.error("Audio play failed:", e)); // ユーザー操作なしの再生エラー対策
+
     // 1. 状態リセット
     score = 0;
     typedChars = 0;
@@ -324,7 +334,7 @@ function nextProblem() {
     jaTextEl.textContent = currentProblem.ja;
 
     if (currentMode === 'hard') {
-        // ★修正3: ハードモード: アンダーバーを表示
+        // ハードモード: アンダーバーを表示
         enTextEl.style.display = 'none';
         enTextHardContainer.style.display = 'flex';
         enTextHardContainer.innerHTML = ''; // クリア
@@ -334,7 +344,6 @@ function nextProblem() {
             span.dataset.char = char; // 元の文字をdata属性に保存
             // スペースはそのまま（見えないスペース）、他はアンダーバー
             span.textContent = (char === ' ') ? '\u00A0' : '_';
-            // 色はCSS側 (#en-text-hard span) で制御
             enTextHardContainer.appendChild(span);
         });
     } else {
@@ -372,6 +381,11 @@ function handleInput(e) {
         // 2. 正しい入力
         const newCharsCount = typedValue.length - currentTypedIndex;
         if (newCharsCount > 0) { // 新しく正しい文字が入力された
+            
+            // 正解タイプ音を再生
+            audioType.currentTime = 0;
+            audioType.play().catch(e => console.error("Audio play failed:", e));
+
             // スペースはポイント加算しない
             const newTypedChars = typedValue.substring(currentTypedIndex);
             const scoreToAdd = newTypedChars.replace(/ /g, '').length * 10;
@@ -380,7 +394,7 @@ function handleInput(e) {
             typedChars += newCharsCount; // タイプ文字数にはスペースも含む
             scoreEl.textContent = score;
 
-            // ★修正3: ハードモード表示更新
+            // ハードモード表示更新
             if (currentMode === 'hard') {
                 const spans = enTextHardContainer.querySelectorAll('span');
                 const rootStyles = getComputedStyle(document.documentElement);
@@ -398,11 +412,19 @@ function handleInput(e) {
 
         // 3. 問題クリアチェック
         if (typedValue === targetText) {
+            // 1問クリア音を再生
+            audioSuccess.currentTime = 0;
+            audioSuccess.play().catch(e => console.error("Audio play failed:", e));
+            
             nextProblem();
         }
 
     } else {
         // 4. ミス
+        // 不正解音を再生
+        audioIncorrect.currentTime = 0;
+        audioIncorrect.play().catch(e => console.error("Audio play failed:", e));
+        
         misses++;
         isProblemPerfect = false;
         
@@ -431,6 +453,10 @@ function endGame(isForced = false) {
         showHomeScreen("mode");
         return;
     }
+
+    // ゲーム終了音を再生
+    audioFinish.currentTime = 0;
+    audioFinish.play().catch(e => console.error("Audio play failed:", e));
 
     // 2. 進捗保存 (クリア判定)
     saveProgress();
