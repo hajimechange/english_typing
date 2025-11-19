@@ -14,6 +14,12 @@
 
         <div id="home-screen" class="screen active">
             <h1>English Typing Game</h1>
+
+            <div id="rank-display">
+                <p class="rank-label">Current Rank</p>
+                <p id="player-rank-name">見習い冒険者</p>
+                <p class="rank-exp">Total EXP: <span id="total-exp">0</span></p>
+            </div>
             
             <div id="mode-selection" class="selection-container">
                 <h2>モードを選択</h2>
@@ -24,15 +30,15 @@
 
             <div id="session-selection" class="selection-container" style="display: none;">
                 <h2>セッションを選択</h2>
-                <button class="btn btn-session" data-session="quizData">意味順コース (quizData)</button>
-                <button class="btn btn-session" data-session="grammarQuizData">文法コース (grammarQuizData)</button>
+                <button class="btn btn-session" data-session="vocabularyData">NEW HORIZON 語句</button>
+                <button class="btn btn-session" data-session="grammarQuizData">文法コース</button>
+                <button class="btn btn-session" data-session="quizData">意味順コース</button>
                 <button class="btn btn-back" data-target="mode">← モード選択に戻る</button>
             </div>
 
             <div id="course-selection" class="selection-container" style="display: none;">
                 <h2 id="course-title">コースを選択</h2>
-                <div id="course-grid">
-                    </div>
+                <div id="course-grid"></div>
                 <button class="btn btn-back" data-target="session">← セッション選択に戻る</button>
             </div>
         </div>
@@ -43,11 +49,18 @@
                 <div>Time: <span id="timer">0</span></div>
             </div>
 
+            <div id="monster-area">
+                <div id="hp-bar-container">
+                    <div id="hp-bar-fill"></div>
+                </div>
+                <img id="monster-img" src="" alt="Monster">
+                <div id="damage-effect">-10</div>
+            </div>
+
             <div id="problem-area">
-                <p id="ja-text">日本語訳がここに表示されます</p>
-                <p id="en-text">English text appears here</p>
-                <div id="en-text-hard">
-                    </div>
+                <p id="ja-text">日本語訳</p>
+                <p id="en-text">English</p>
+                <div id="en-text-hard"></div>
             </div>
 
             <input type="text" id="input-box" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
@@ -70,6 +83,7 @@
 
     <script src="quizData.js"></script>
     <script src="grammarQuizData.js"></script>
+    <script src="vocabularyData.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -4,28 +4,47 @@
 // --- グローバル変数・定数 ---
 const courses = {
     quizData: [],
-    grammarQuizData: []
+    grammarQuizData: [],
+    vocabularyData: []
 };
 
+// 進捗データ
 let progress = {
+    totalXP: 0,
     quizData: { easy: 0, normal: 0, hard: 0 },
-    grammarQuizData: { easy: 0, normal: 0, hard: 0 }
+    grammarQuizData: { easy: 0, normal: 0, hard: 0 },
+    vocabularyData: { easy: 0, normal: 0, hard: 0 }
 };
 
 const GAME_SETTINGS = {
-    easy:   { totalTime: 60, problemTime: 20, clearScore: 1000, name: "イージー" },
-    normal: { totalTime: 90, problemTime: 10, clearScore: 3000, name: "ノーマル" },
-    hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード" }
+    easy:   { totalTime: 60, problemTime: 20, clearScore: 1000, name: "イージー", defaultMonster: "images/monster_easy.png" },
+    normal: { totalTime: 90, problemTime: 10, clearScore: 3000, name: "ノーマル", defaultMonster: "images/monster_normal.png" },
+    hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード",   defaultMonster: "images/monster_hard.png" }
 };
+
+// ランクシステムの定義
+const RANKS = [
+    { name: "見習い冒険者", threshold: 0 },
+    { name: "駆け出しタイピスト", threshold: 5000 },
+    { name: "熟練の戦士", threshold: 20000 },
+    { name: "単語の魔術師", threshold: 50000 },
+    { name: "英語マスター", threshold: 100000 },
+    { name: "伝説の英雄", threshold: 200000 }
+];
 
 // ゲーム状態
 let currentMode = "easy";
-let currentSessionKey = "quizData"; // "quizData" or "grammarQuizData"
+let currentSessionKey = "quizData";
 let currentCourseIndex = 0;
-let currentGameData = []; // 現在のコースの問題
+let currentGameData = [];
 let currentProblem = null;
 let currentProblemIndex = 0;
-let currentTypedIndex = 0; // 現在タイプ中の文字インデックス
+let currentTypedIndex = 0;
+
+// モンスター・クリア判定用状態変数
+let currentMonsterMaxHP = 1000;
+let currentMonsterHP = 1000;
+let currentClearScore = 1000; // ★追加: 今回のゲームのクリア基準点
 
 // タイマーID
 let gameTimerId = null;
@@ -51,6 +70,10 @@ const selectionContainers = {
     course: document.getElementById("course-selection")
 };
 
+// ホーム画面ランク用要素
+const playerRankNameEl = document.getElementById("player-rank-name");
+const totalExpEl = document.getElementById("total-exp");
+
 // ゲーム画面要素
 const scoreEl = document.getElementById("score");
 const timerEl = document.getElementById("timer");
@@ -59,6 +82,11 @@ const enTextEl = document.getElementById("en-text");
 const enTextHardContainer = document.getElementById("en-text-hard");
 const inputBox = document.getElementById("input-box");
 
+// モンスター用要素
+const monsterImgEl = document.getElementById("monster-img");
+const hpBarFillEl = document.getElementById("hp-bar-fill");
+const damageEffectEl = document.getElementById("damage-effect");
+
 // 結果画面要素
 const resultTitleEl = document.getElementById("result-title");
 const resultMessageEl = document.getElementById("result-message");
@@ -66,160 +94,155 @@ const finalScoreEl = document.getElementById("final-score");
 const totalTypedEl = document.getElementById("total-typed");
 const missCountEl = document.getElementById("miss-count");
 
-// ★修正: 効果音ファイルの読み込み (sounds/ フォルダを指定)
+// --- サウンド関連 ---
 const audioStart = new Audio('sounds/start.mp3');
 const audioType = new Audio('sounds/type1.mp3');
 const audioIncorrect = new Audio('sounds/incorrect.mp3');
 const audioSuccess = new Audio('sounds/success.mp3');
 const audioFinish = new Audio('sounds/finish.mp3');
+const audioBGM = new Audio('sounds/battle.mp3');
+audioBGM.loop = true;
+audioBGM.volume = 0.3;
 
 
 // --- 初期化処理 ---
 document.addEventListener("DOMContentLoaded", initialize);
 
 function initialize() {
-    // 1. 問題データをコース別に分割
-    splitDataIntoCourses(allQuizData, 'quizData');
-    splitDataIntoCourses(grammarQuizData, 'grammarQuizData');
+    if (typeof allQuizData !== 'undefined') splitDataIntoCourses(allQuizData, 'quizData');
+    if (typeof grammarQuizData !== 'undefined') splitDataIntoCourses(grammarQuizData, 'grammarQuizData');
+    
+    if (typeof vocabularyData !== 'undefined') {
+        splitDataIntoCourses(vocabularyData, 'vocabularyData');
+    } else {
+        console.warn("vocabularyData.js が読み込まれていません。");
+    }
 
-    // 2. ブラウザから進捗をロード
     loadProgress();
-
-    // 3. イベントリスナーを設定
+    updateRankDisplay();
     setupEventListeners();
-
-    // 4. ホーム画面を初期表示 (モード選択)
     showHomeScreen("mode");
 }
 
-/**
- * 元データをカテゴリ別に分割して `courses` オブジェクトに格納
- * @param {Array} data - allQuizData or grammarQuizData
- * @param {String} key - "quizData" or "grammarQuizData"
- */
 function splitDataIntoCourses(data, key) {
     const categories = [...new Set(data.map(item => item.category))];
-    courses[key] = categories.map(category => {
+    
+    courses[key] = categories.map((category, index) => {
         const problems = data.filter(item => item.category === category);
-        return {
-            name: category,
-            problems: problems
+        
+        // モンスター画像の割り当て
+        let monsterImage = null;
+        if (key === 'vocabularyData') {
+            const imageIndex = (index % 87) + 1; 
+            monsterImage = `images2/${imageIndex}.jpg`;
+        } else {
+            monsterImage = null;
+        }
+
+        return { 
+            name: category, 
+            problems: problems,
+            monsterImg: monsterImage 
         };
     });
 }
 
-/**
- * LocalStorageから進捗を読み込む
- */
 function loadProgress() {
     const savedProgress = localStorage.getItem("typingGameProgress");
     if (savedProgress) {
-        progress = JSON.parse(savedProgress);
+        const parsed = JSON.parse(savedProgress);
+        progress = { ...progress, ...parsed };
+        
+        if (typeof progress.totalXP === 'undefined') {
+            progress.totalXP = 0;
+        }
+        if (!progress.vocabularyData) {
+            progress.vocabularyData = { easy: 0, normal: 0, hard: 0 };
+        }
     }
 }
 
-/**
- * 進捗をLocalStorageに保存
- */
 function saveProgress() {
-    const settings = GAME_SETTINGS[currentMode];
-    if (score >= settings.clearScore) {
-        // クリアしたコースインデックス
+    // ★修正: 固定設定ではなく、動的に計算された currentClearScore を使用
+    progress.totalXP += score;
+
+    if (score >= currentClearScore) {
         const clearedIndex = currentCourseIndex;
-        // 現在の最大クリアレベル
         const maxCleared = progress[currentSessionKey][currentMode];
-        
-        // 新しいクリアレベルが現在のレベル以上の場合のみ更新
         if (clearedIndex + 1 > maxCleared) {
             progress[currentSessionKey][currentMode] = clearedIndex + 1;
-            localStorage.setItem("typingGameProgress", JSON.stringify(progress));
         }
     }
+    localStorage.setItem("typingGameProgress", JSON.stringify(progress));
+    
+    updateRankDisplay();
+}
+
+function updateRankDisplay() {
+    let currentRankName = RANKS[0].name;
+    
+    for (let i = 0; i < RANKS.length; i++) {
+        if (progress.totalXP >= RANKS[i].threshold) {
+            currentRankName = RANKS[i].name;
+        } else {
+            break;
+        }
+    }
+
+    playerRankNameEl.textContent = currentRankName;
+    totalExpEl.textContent = progress.totalXP;
 }
 
 // --- イベントリスナー設定 ---
 function setupEventListeners() {
-    // モード選択
     document.querySelectorAll(".btn-mode").forEach(btn => {
         btn.addEventListener("click", () => selectMode(btn.dataset.mode));
     });
-
-    // セッション選択
     document.querySelectorAll(".btn-session").forEach(btn => {
         btn.addEventListener("click", () => selectSession(btn.dataset.session));
     });
-
-    // 戻るボタン
     document.querySelectorAll(".btn-back").forEach(btn => {
         btn.addEventListener("click", () => showHomeScreen(btn.dataset.target));
     });
-
-    // ゲーム画面 -> ホームへ
     document.getElementById("home-btn").addEventListener("click", () => {
         if (confirm("ゲームを中断してホームに戻りますか？")) {
-            endGame(true); // 強制終了
+            endGame(true);
         }
     });
-
-    // 結果画面 -> ホームへ
     document.getElementById("back-to-home-btn").addEventListener("click", () => {
         showScreen("home");
-        showHomeScreen("mode"); // モード選択から
+        showHomeScreen("mode");
     });
-
-    // タイピング入力
     inputBox.addEventListener("input", handleInput);
 }
 
 // --- 画面遷移ロジック ---
-
-/**
- * 指定したIDの画面を表示
- * @param {String} screenId - "home", "game", "result"
- */
 function showScreen(screenId) {
     Object.values(screens).forEach(screen => screen.classList.remove("active"));
     screens[screenId].classList.add("active");
 }
 
-/**
- * ホーム画面の表示を切り替え
- * @param {String} view - "mode", "session", "course"
- */
 function showHomeScreen(view) {
     Object.values(selectionContainers).forEach(container => container.style.display = "none");
-    if (view === "mode") {
-        selectionContainers.mode.style.display = "flex";
-    } else if (view === "session") {
-        selectionContainers.session.style.display = "flex";
-    } else if (view === "course") {
+    if (view === "mode") selectionContainers.mode.style.display = "flex";
+    else if (view === "session") selectionContainers.session.style.display = "flex";
+    else if (view === "course") {
         selectionContainers.course.style.display = "flex";
-        updateCourseDisplay(); // コース一覧を更新
+        updateCourseDisplay();
     }
     showScreen("home");
 }
 
-/**
- * 1. モード選択
- * @param {String} mode - "easy", "normal", "hard"
- */
 function selectMode(mode) {
     currentMode = mode;
     showHomeScreen("session");
 }
 
-/**
- * 2. セッション選択
- * @param {String} sessionKey - "quizData" or "grammarQuizData"
- */
 function selectSession(sessionKey) {
     currentSessionKey = sessionKey;
     showHomeScreen("course");
 }
 
-/**
- * 3. コース一覧の表示（ロック/アンロック制御）
- */
 function updateCourseDisplay() {
     const courseGrid = document.getElementById("course-grid");
     const courseTitle = document.getElementById("course-title");
@@ -227,20 +250,22 @@ function updateCourseDisplay() {
     const maxCleared = progress[currentSessionKey][currentMode];
 
     courseTitle.textContent = `${GAME_SETTINGS[currentMode].name} - コース選択`;
-    courseGrid.innerHTML = ""; // いったん空に
+    courseGrid.innerHTML = "";
+
+    if (!sessionCourses || sessionCourses.length === 0) {
+        courseGrid.innerHTML = "<p>コースデータがありません。</p>";
+        return;
+    }
 
     sessionCourses.forEach((course, index) => {
         const btn = document.createElement("button");
         btn.classList.add("btn", "course-btn");
-        
         btn.textContent = `Course ${index + 1}: ${course.name}`;
         
         if (index <= maxCleared) {
-            // アンロック状態
             btn.dataset.index = index;
             btn.addEventListener("click", () => selectCourse(index));
         } else {
-            // ロック状態
             btn.classList.add("locked");
             btn.disabled = true;
         }
@@ -248,43 +273,68 @@ function updateCourseDisplay() {
     });
 }
 
-/**
- * 4. コース選択 -> ゲーム開始
- * @param {Number} index 
- */
 function selectCourse(index) {
     currentCourseIndex = index;
     currentGameData = courses[currentSessionKey][index].problems;
-    // 問題をシャッフル（任意）
-    // currentGameData.sort(() => Math.random() - 0.5); 
     startGame();
 }
 
 // --- ゲーム本体ロジック ---
 
-/**
- * ゲーム開始
- */
 function startGame() {
-    // ゲーム開始音を再生
     audioStart.currentTime = 0;
-    audioStart.play().catch(e => console.error("Audio play failed:", e)); // ユーザー操作なしの再生エラー対策
+    audioStart.play().catch(e => console.error("Audio play failed:", e));
 
-    // 1. 状態リセット
+    audioBGM.currentTime = 0;
+    audioBGM.play().catch(e => console.error("BGM play failed:", e));
+
     score = 0;
     typedChars = 0;
     misses = 0;
-    currentProblemIndex = -1; // nextProblem()で0になる
+    currentProblemIndex = -1;
 
-    // 2. 設定読み込み
     const settings = GAME_SETTINGS[currentMode];
     timerEl.textContent = settings.totalTime;
     scoreEl.textContent = score;
 
-    // 3. 画面切り替え
+    // --- ★モンスターHPとクリア基準の計算 ---
+    if (currentSessionKey === 'vocabularyData') {
+        // コースの満点（全文字数 * 10点）を計算
+        let totalCoursePossibleScore = 0;
+        currentGameData.forEach(p => {
+            totalCoursePossibleScore += p.en.replace(/ /g, '').length * 10;
+        });
+
+        // 収録問題（スコア）の8割をクリア基準とする
+        currentClearScore = Math.floor(totalCoursePossibleScore * 0.8);
+        
+        // 0点や極端に低い場合は最低100点とする
+        if (currentClearScore < 100) currentClearScore = 100;
+
+        // モンスターHPもクリア基準と同じにする
+        currentMonsterMaxHP = currentClearScore;
+
+    } else {
+        // その他のセッションは固定設定を使用
+        currentClearScore = settings.clearScore;
+        currentMonsterMaxHP = settings.clearScore;
+    }
+    
+    currentMonsterHP = currentMonsterMaxHP;
+
+    // --- モンスター画像の設定 ---
+    const currentCourse = courses[currentSessionKey][currentCourseIndex];
+    if (currentCourse.monsterImg) {
+        monsterImgEl.src = currentCourse.monsterImg;
+    } else {
+        monsterImgEl.src = settings.defaultMonster;
+    }
+    
+    monsterImgEl.classList.remove("defeated");
+    updateMonsterUI();
+
     showScreen("game");
 
-    // 4. タイマースタート
     let remainingTime = settings.totalTime;
     gameTimerId = setInterval(() => {
         remainingTime--;
@@ -294,185 +344,177 @@ function startGame() {
         }
     }, 1000);
 
-    // 5. 最初の問題を表示
     nextProblem();
 }
 
-/**
- * 次の問題を表示
- */
 function nextProblem() {
-    // 1. 前の問題のタイマーをクリア
     if (problemTimerId) {
         clearTimeout(problemTimerId);
         problemTimerId = null;
     }
 
-    // 2. ボーナススコア加算 (ミスなしの場合)
     if (currentProblem && isProblemPerfect) {
-        score += problemScore; // 1文字10ptなので、文字数 * 10
+        score += problemScore;
+        updateMonsterUI(problemScore);
+        triggerDamageEffect(problemScore);
     }
 
-    // 3. 次の問題へ
     currentProblemIndex++;
     if (currentProblemIndex >= currentGameData.length) {
-        endGame(); // 全問終了
+        endGame();
         return;
     }
 
-    // 4. 問題データ取得
     currentProblem = currentGameData[currentProblemIndex];
     const targetText = currentProblem.en;
     
-    // 5. 状態リセット
     currentTypedIndex = 0;
     isProblemPerfect = true;
-    problemScore = targetText.replace(/ /g, '').length * 10; // スペースを除く文字数 * 10
+    problemScore = targetText.replace(/ /g, '').length * 10;
 
-    // 6. 画面表示更新
     scoreEl.textContent = score;
     jaTextEl.textContent = currentProblem.ja;
 
     if (currentMode === 'hard') {
-        // ハードモード: アンダーバーを表示
         enTextEl.style.display = 'none';
         enTextHardContainer.style.display = 'flex';
-        enTextHardContainer.innerHTML = ''; // クリア
-        
+        enTextHardContainer.innerHTML = '';
         targetText.split('').forEach(char => {
             const span = document.createElement('span');
-            span.dataset.char = char; // 元の文字をdata属性に保存
-            // スペースはそのまま（見えないスペース）、他はアンダーバー
+            span.dataset.char = char;
             span.textContent = (char === ' ') ? '\u00A0' : '_';
             enTextHardContainer.appendChild(span);
         });
     } else {
-        // イージー/ノーマル: 英語を表示
         enTextEl.style.display = 'block';
         enTextHardContainer.style.display = 'none';
         enTextEl.textContent = targetText;
     }
 
-    // 7. 入力ボックス処理
     inputBox.value = "";
-    // 自動フォーカス (iPadでは動作が不安定な場合があるため、遅延実行)
     setTimeout(() => inputBox.focus(), 100);
 
-    // 8. 問題ごとの制限時間タイマー
     const settings = GAME_SETTINGS[currentMode];
     problemTimerId = setTimeout(() => {
-        isProblemPerfect = false; // 時間切れはミス扱い
+        isProblemPerfect = false;
         nextProblem();
     }, settings.problemTime * 1000);
 }
 
-/**
- * タイピング入力処理
- * @param {Event} e 
- */
 function handleInput(e) {
     if (!currentProblem) return;
 
     const typedValue = inputBox.value;
     const targetText = currentProblem.en;
 
-    // 1. 全体がターゲットの先頭部分と一致するかチェック
     if (targetText.startsWith(typedValue)) {
-        // 2. 正しい入力
         const newCharsCount = typedValue.length - currentTypedIndex;
-        if (newCharsCount > 0) { // 新しく正しい文字が入力された
-            
-            // 正解タイプ音を再生
+        if (newCharsCount > 0) {
             audioType.currentTime = 0;
-            audioType.play().catch(e => console.error("Audio play failed:", e));
+            audioType.play().catch(e => {});
 
-            // スペースはポイント加算しない
             const newTypedChars = typedValue.substring(currentTypedIndex);
             const scoreToAdd = newTypedChars.replace(/ /g, '').length * 10;
             
             score += scoreToAdd;
-            typedChars += newCharsCount; // タイプ文字数にはスペースも含む
+            typedChars += newCharsCount;
             scoreEl.textContent = score;
 
-            // ハードモード表示更新
+            updateMonsterUI(scoreToAdd);
+            if (scoreToAdd > 0) triggerMonsterShake();
+
             if (currentMode === 'hard') {
                 const spans = enTextHardContainer.querySelectorAll('span');
                 const rootStyles = getComputedStyle(document.documentElement);
                 const defaultColor = rootStyles.getPropertyValue('--text-color').trim();
-
                 for (let i = currentTypedIndex; i < typedValue.length; i++) {
                     const char = spans[i].dataset.char; 
-                    spans[i].textContent = char; // 元の文字に戻す
-                    spans[i].style.color = defaultColor; // 色を元の文字色に戻す
+                    spans[i].textContent = char;
+                    spans[i].style.color = defaultColor;
                 }
             }
         }
         
-        currentTypedIndex = typedValue.length; // インデックス更新
+        currentTypedIndex = typedValue.length;
 
-        // 3. 問題クリアチェック
         if (typedValue === targetText) {
-            // 1問クリア音を再生
             audioSuccess.currentTime = 0;
-            audioSuccess.play().catch(e => console.error("Audio play failed:", e));
-            
+            audioSuccess.play().catch(e => {});
             nextProblem();
         }
 
     } else {
-        // 4. ミス
-        // 不正解音を再生
         audioIncorrect.currentTime = 0;
-        audioIncorrect.play().catch(e => console.error("Audio play failed:", e));
-        
+        audioIncorrect.play().catch(e => {});
         misses++;
         isProblemPerfect = false;
-        
-        // 5. ミス地点（直前の正しい地点）まで入力を戻す
-        //    (入力イベントの伝播を遅らせるため、setTimeoutでラップ)
         setTimeout(() => {
             inputBox.value = targetText.substring(0, currentTypedIndex);
         }, 0);
     }
 }
 
-/**
- * ゲーム終了処理
- * @param {boolean} [isForced=false] - ホームボタンによる強制終了か
- */
+function updateMonsterUI(damage = 0) {
+    const currentHP = Math.max(0, currentMonsterMaxHP - score);
+    const hpPercent = (currentHP / currentMonsterMaxHP) * 100;
+    
+    hpBarFillEl.style.width = `${hpPercent}%`;
+    
+    if (hpPercent > 50) hpBarFillEl.style.backgroundColor = "#28a745";
+    else if (hpPercent > 20) hpBarFillEl.style.backgroundColor = "#ffc107";
+    else hpBarFillEl.style.backgroundColor = "#dc3545";
+
+    if (currentHP <= 0) {
+        monsterImgEl.classList.add("defeated");
+    }
+}
+
+function triggerMonsterShake() {
+    monsterImgEl.classList.remove("shake");
+    void monsterImgEl.offsetWidth;
+    monsterImgEl.classList.add("shake");
+}
+
+function triggerDamageEffect(damage) {
+    if (damage <= 0) return;
+    damageEffectEl.textContent = `-${damage}`;
+    damageEffectEl.classList.remove("damage-pop");
+    void damageEffectEl.offsetWidth;
+    damageEffectEl.classList.add("damage-pop");
+}
+
 function endGame(isForced = false) {
-    // 1. 全タイマー停止
     clearInterval(gameTimerId);
     clearTimeout(problemTimerId);
     gameTimerId = null;
     problemTimerId = null;
 
+    audioBGM.pause();
+    audioBGM.currentTime = 0;
+
     if (isForced) {
-        // 強制終了時はホームに戻るだけ
         showScreen("home");
         showHomeScreen("mode");
         return;
     }
 
-    // ゲーム終了音を再生
     audioFinish.currentTime = 0;
-    audioFinish.play().catch(e => console.error("Audio play failed:", e));
+    audioFinish.play().catch(e => {});
 
-    // 2. 進捗保存 (クリア判定)
     saveProgress();
 
-    // 3. 結果画面表示
     const settings = GAME_SETTINGS[currentMode];
     resultTitleEl.textContent = `結果 (${settings.name} - Course ${currentCourseIndex + 1})`;
     finalScoreEl.textContent = score;
     totalTypedEl.textContent = typedChars;
     missCountEl.textContent = misses;
 
-    if (score >= settings.clearScore) {
-        resultMessageEl.textContent = "🎉 クリア！ 🎉";
+    // ★修正: 固定値ではなく currentClearScore で判定
+    if (score >= currentClearScore) {
+        resultMessageEl.textContent = "🎉 クリア！ Monster Defeated! 🎉";
         resultMessageEl.className = "clear";
     } else {
-        resultMessageEl.textContent = "残念...もう一度挑戦しよう";
+        resultMessageEl.textContent = "残念... モンスターは逃げてしまった";
         resultMessageEl.className = "fail";
     }
 
