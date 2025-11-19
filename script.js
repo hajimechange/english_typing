@@ -44,7 +44,7 @@ let currentTypedIndex = 0;
 // モンスター・クリア判定用状態変数
 let currentMonsterMaxHP = 1000;
 let currentMonsterHP = 1000;
-let currentClearScore = 1000; // ★追加: 今回のゲームのクリア基準点
+let currentClearScore = 1000; 
 
 // タイマーID
 let gameTimerId = null;
@@ -124,19 +124,30 @@ function initialize() {
     showHomeScreen("mode");
 }
 
+/**
+ * データをコースごとに分割し、セッションに応じたモンスター画像を割り当てる
+ */
 function splitDataIntoCourses(data, key) {
     const categories = [...new Set(data.map(item => item.category))];
     
     courses[key] = categories.map((category, index) => {
         const problems = data.filter(item => item.category === category);
         
-        // モンスター画像の割り当て
-        let monsterImage = null;
+        // ★モンスター画像のフォルダ振り分け
+        let folderName = null;
         if (key === 'vocabularyData') {
-            const imageIndex = (index % 87) + 1; 
-            monsterImage = `images2/${imageIndex}.jpg`;
-        } else {
-            monsterImage = null;
+            folderName = 'images2';
+        } else if (key === 'quizData') {
+            folderName = 'images4';
+        } else if (key === 'grammarQuizData') {
+            folderName = 'images3';
+        }
+
+        let monsterImage = null;
+        if (folderName) {
+            // 1.jpg, 2.jpg ... のように連番で割り当て
+            const imageIndex = index + 1; 
+            monsterImage = `${folderName}/${imageIndex}.jpg`;
         }
 
         return { 
@@ -163,9 +174,9 @@ function loadProgress() {
 }
 
 function saveProgress() {
-    // ★修正: 固定設定ではなく、動的に計算された currentClearScore を使用
     progress.totalXP += score;
 
+    // currentClearScore以上ならクリアとして記録
     if (score >= currentClearScore) {
         const clearedIndex = currentCourseIndex;
         const maxCleared = progress[currentSessionKey][currentMode];
@@ -297,29 +308,22 @@ function startGame() {
     timerEl.textContent = settings.totalTime;
     scoreEl.textContent = score;
 
-    // --- ★モンスターHPとクリア基準の計算 ---
-    if (currentSessionKey === 'vocabularyData') {
-        // コースの満点（全文字数 * 10点）を計算
-        let totalCoursePossibleScore = 0;
-        currentGameData.forEach(p => {
-            totalCoursePossibleScore += p.en.replace(/ /g, '').length * 10;
-        });
+    // --- ★クリア基準（モンスターHP）の計算 ---
+    // すべてのセッションで「収録問題の合計スコアの8割」を基準とする
+    let totalCoursePossibleScore = 0;
+    currentGameData.forEach(p => {
+        // 1文字10点換算
+        totalCoursePossibleScore += p.en.replace(/ /g, '').length * 10;
+    });
 
-        // 収録問題（スコア）の8割をクリア基準とする
-        currentClearScore = Math.floor(totalCoursePossibleScore * 0.8);
-        
-        // 0点や極端に低い場合は最低100点とする
-        if (currentClearScore < 100) currentClearScore = 100;
-
-        // モンスターHPもクリア基準と同じにする
-        currentMonsterMaxHP = currentClearScore;
-
-    } else {
-        // その他のセッションは固定設定を使用
-        currentClearScore = settings.clearScore;
-        currentMonsterMaxHP = settings.clearScore;
-    }
+    // 8割をクリア基準とする
+    currentClearScore = Math.floor(totalCoursePossibleScore * 0.8);
     
+    // 最低でも100点（10文字分）は必要とする安全策
+    if (currentClearScore < 100) currentClearScore = 100;
+
+    // モンスターHPをクリア基準と同期
+    currentMonsterMaxHP = currentClearScore;
     currentMonsterHP = currentMonsterMaxHP;
 
     // --- モンスター画像の設定 ---
@@ -340,7 +344,7 @@ function startGame() {
         remainingTime--;
         timerEl.textContent = remainingTime;
         if (remainingTime <= 0) {
-            endGame();
+            endGame(); // タイムアップ終了
         }
     }, 1000);
 
@@ -359,7 +363,14 @@ function nextProblem() {
         triggerDamageEffect(problemScore);
     }
 
+    // ★修正: ボーナス加算等でスコアが増え、モンスターを倒していたら即終了
+    if (score >= currentClearScore) {
+        endGame();
+        return;
+    }
+
     currentProblemIndex++;
+    // 全問終了しても、まだスコアが足りない場合は終了（失敗扱いになる）
     if (currentProblemIndex >= currentGameData.length) {
         endGame();
         return;
@@ -402,7 +413,8 @@ function nextProblem() {
 }
 
 function handleInput(e) {
-    if (!currentProblem) return;
+    // ゲーム終了後は入力を受け付けない
+    if (!currentProblem || !gameTimerId) return;
 
     const typedValue = inputBox.value;
     const targetText = currentProblem.en;
@@ -432,6 +444,12 @@ function handleInput(e) {
                     spans[i].textContent = char;
                     spans[i].style.color = defaultColor;
                 }
+            }
+
+            // ★追加: モンスターを倒したら（クリアスコアに達したら）即終了
+            if (score >= currentClearScore) {
+                endGame();
+                return;
             }
         }
         
@@ -484,6 +502,9 @@ function triggerDamageEffect(damage) {
 }
 
 function endGame(isForced = false) {
+    // 二重呼び出し防止（タイマーと入力イベントが競合した場合など）
+    if (gameTimerId === null && problemTimerId === null && !isForced) return;
+
     clearInterval(gameTimerId);
     clearTimeout(problemTimerId);
     gameTimerId = null;
@@ -509,7 +530,6 @@ function endGame(isForced = false) {
     totalTypedEl.textContent = typedChars;
     missCountEl.textContent = misses;
 
-    // ★修正: 固定値ではなく currentClearScore で判定
     if (score >= currentClearScore) {
         resultMessageEl.textContent = "🎉 クリア！ Monster Defeated! 🎉";
         resultMessageEl.className = "clear";
