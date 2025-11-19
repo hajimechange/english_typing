@@ -22,14 +22,49 @@ const GAME_SETTINGS = {
     hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード",   defaultMonster: "images/monster_hard.png" }
 };
 
-// ランクシステムの定義
+// ★ランクシステムの定義（30段階に拡張）
 const RANKS = [
-    { name: "見習い冒険者", threshold: 0 },
-    { name: "駆け出しタイピスト", threshold: 5000 },
-    { name: "熟練の戦士", threshold: 20000 },
-    { name: "単語の魔術師", threshold: 50000 },
-    { name: "英語マスター", threshold: 100000 },
-    { name: "伝説の英雄", threshold: 200000 }
+    // --- 初級：見習い期間 (Lv.1 - Lv.5) ---
+    { name: "Lv.1 村人", threshold: 0 },
+    { name: "Lv.2 旅人", threshold: 500 },
+    { name: "Lv.3 見習い冒険者", threshold: 1500 },
+    { name: "Lv.4 駆け出し戦士", threshold: 3000 },
+    { name: "Lv.5 銅のタイピスト", threshold: 5000 },
+
+    // --- 中級：成長期 (Lv.6 - Lv.10) ---
+    { name: "Lv.6 町の用心棒", threshold: 8000 },
+    { name: "Lv.7 熟練の狩人", threshold: 12000 },
+    { name: "Lv.8 銀のタイピスト", threshold: 17000 },
+    { name: "Lv.9 歴戦の傭兵", threshold: 23000 },
+    { name: "Lv.10 王国騎士", threshold: 30000 },
+
+    // --- 上級：熟練期 (Lv.11 - Lv.15) ---
+    { name: "Lv.11 近衛隊長", threshold: 38000 },
+    { name: "Lv.12 金のタイピスト", threshold: 47000 },
+    { name: "Lv.13 疾風の剣士", threshold: 57000 },
+    { name: "Lv.14 雷鳴の魔導師", threshold: 68000 },
+    { name: "Lv.15 ドラゴンキラー", threshold: 80000 },
+
+    // --- 超級：英雄期 (Lv.16 - Lv.20) ---
+    { name: "Lv.16 英雄候補生", threshold: 95000 },
+    { name: "Lv.17 プラチナタイピスト", threshold: 115000 },
+    { name: "Lv.18 国の救世主", threshold: 140000 },
+    { name: "Lv.19 天空の覇者", threshold: 170000 },
+    { name: "Lv.20 伝説の勇者", threshold: 200000 },
+
+    // --- 神級：伝説期 (Lv.21 - Lv.25) ---
+    { name: "Lv.21 光の守護者", threshold: 240000 },
+    { name: "Lv.22 ダイヤタイピスト", threshold: 290000 },
+    { name: "Lv.23 次元の超越者", threshold: 350000 },
+    { name: "Lv.24 星の管理者", threshold: 420000 },
+    { name: "Lv.25 時空の支配者", threshold: 500000 },
+
+    // --- 究極：神話期 (Lv.26 - Lv.30) ---
+    { name: "Lv.26 言葉の魔神", threshold: 600000 },
+    { name: "Lv.27 アルティメット", threshold: 720000 },
+    { name: "Lv.28 キーボード・ゴッド", threshold: 850000 },
+    { name: "Lv.29 創造神", threshold: 1000000 },
+    { name: "Lv.30 THE TYPING MASTER", threshold: 1200000 }
 ];
 
 // ゲーム状態
