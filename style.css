@@ -260,7 +260,7 @@ h2 {
 #monster-area {
     position: relative;
     width: 100%;
-    height: 25vh; /* 画面の高さの25%をモンスター領域に */
+    height: 30vh; /* ★変更: 25vh -> 40vh に拡大 */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -269,10 +269,11 @@ h2 {
 }
 
 #monster-img {
-    height: 80%;
+    height: 90%; /* ★変更: エリアいっぱいに表示 */
     width: auto;
     object-fit: contain;
     transition: transform 0.1s;
+    
 }
 
 /* ダメージを受けた時の振動アニメーション */
