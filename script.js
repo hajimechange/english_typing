@@ -22,7 +22,7 @@ const GAME_SETTINGS = {
     hard:   { totalTime: 90, problemTime: 10, clearScore: 5000, name: "ハード",   defaultMonster: "images/monster_hard.png" }
 };
 
-// ★ランクシステムの定義（30段階に拡張）
+// ランクシステムの定義
 const RANKS = [
     // --- 初級：見習い期間 (Lv.1 - Lv.5) ---
     { name: "Lv.1 村人", threshold: 0 },
@@ -168,19 +168,18 @@ function splitDataIntoCourses(data, key) {
     courses[key] = categories.map((category, index) => {
         const problems = data.filter(item => item.category === category);
         
-        // ★モンスター画像のフォルダ振り分け
+        // モンスター画像のフォルダ振り分け
         let folderName = null;
         if (key === 'vocabularyData') {
             folderName = 'images2';
         } else if (key === 'quizData') {
-            folderName = 'images4';
-        } else if (key === 'grammarQuizData') {
             folderName = 'images3';
+        } else if (key === 'grammarQuizData') {
+            folderName = 'images4';
         }
 
         let monsterImage = null;
         if (folderName) {
-            // 1.jpg, 2.jpg ... のように連番で割り当て
             const imageIndex = index + 1; 
             monsterImage = `${folderName}/${imageIndex}.jpg`;
         }
@@ -211,7 +210,6 @@ function loadProgress() {
 function saveProgress() {
     progress.totalXP += score;
 
-    // currentClearScore以上ならクリアとして記録
     if (score >= currentClearScore) {
         const clearedIndex = currentCourseIndex;
         const maxCleared = progress[currentSessionKey][currentMode];
@@ -343,8 +341,7 @@ function startGame() {
     timerEl.textContent = settings.totalTime;
     scoreEl.textContent = score;
 
-    // --- ★クリア基準（モンスターHP）の計算 ---
-    // すべてのセッションで「収録問題の合計スコアの8割」を基準とする
+    // クリア基準（モンスターHP）の計算
     let totalCoursePossibleScore = 0;
     currentGameData.forEach(p => {
         // 1文字10点換算
@@ -353,15 +350,12 @@ function startGame() {
 
     // 8割をクリア基準とする
     currentClearScore = Math.floor(totalCoursePossibleScore * 0.8);
-    
-    // 最低でも100点（10文字分）は必要とする安全策
     if (currentClearScore < 100) currentClearScore = 100;
 
-    // モンスターHPをクリア基準と同期
     currentMonsterMaxHP = currentClearScore;
     currentMonsterHP = currentMonsterMaxHP;
 
-    // --- モンスター画像の設定 ---
+    // モンスター画像の設定
     const currentCourse = courses[currentSessionKey][currentCourseIndex];
     if (currentCourse.monsterImg) {
         monsterImgEl.src = currentCourse.monsterImg;
@@ -398,14 +392,12 @@ function nextProblem() {
         triggerDamageEffect(problemScore);
     }
 
-    // ★修正: ボーナス加算等でスコアが増え、モンスターを倒していたら即終了
     if (score >= currentClearScore) {
         endGame();
         return;
     }
 
     currentProblemIndex++;
-    // 全問終了しても、まだスコアが足りない場合は終了（失敗扱いになる）
     if (currentProblemIndex >= currentGameData.length) {
         endGame();
         return;
@@ -440,6 +432,11 @@ function nextProblem() {
     inputBox.value = "";
     setTimeout(() => inputBox.focus(), 100);
 
+    // ★追加: 発音読み上げ (vocabularyDataのみ)
+    if (currentSessionKey === 'vocabularyData') {
+        speakText(targetText);
+    }
+
     const settings = GAME_SETTINGS[currentMode];
     problemTimerId = setTimeout(() => {
         isProblemPerfect = false;
@@ -448,7 +445,6 @@ function nextProblem() {
 }
 
 function handleInput(e) {
-    // ゲーム終了後は入力を受け付けない
     if (!currentProblem || !gameTimerId) return;
 
     const typedValue = inputBox.value;
@@ -481,7 +477,6 @@ function handleInput(e) {
                 }
             }
 
-            // ★追加: モンスターを倒したら（クリアスコアに達したら）即終了
             if (score >= currentClearScore) {
                 endGame();
                 return;
@@ -536,8 +531,21 @@ function triggerDamageEffect(damage) {
     damageEffectEl.classList.add("damage-pop");
 }
 
+// ★追加: テキスト読み上げ関数
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        // ブラウザの読み上げ機能をキャンセルしてリセット
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US'; // 英語（米国）
+        // utterance.rate = 1.0; // 速度調整が必要な場合はコメントアウト解除
+        
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
 function endGame(isForced = false) {
-    // 二重呼び出し防止（タイマーと入力イベントが競合した場合など）
     if (gameTimerId === null && problemTimerId === null && !isForced) return;
 
     clearInterval(gameTimerId);
@@ -547,6 +555,11 @@ function endGame(isForced = false) {
 
     audioBGM.pause();
     audioBGM.currentTime = 0;
+    
+    // ゲーム終了時は読み上げもキャンセル
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
 
     if (isForced) {
         showScreen("home");
